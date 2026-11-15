@@ -1,7 +1,7 @@
 "use client";
 
 import { JapaneseYen, NotebookPen } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GarbageBadge } from "@/components/GarbageBadge";
 import { MonthSwitcher } from "@/components/MonthSwitcher";
 import { ShiftModal } from "@/components/ShiftModal";
@@ -18,9 +18,9 @@ import type { Member, ShiftDay } from "@/lib/types";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
-const legend = (["burnable", "plastic", "pet", "recycle", "nonburnable"] as const).map(
-  (type) => GARBAGE_META[type],
-);
+const legend = (
+  ["burnable", "plastic", "pet", "recycle", "nonburnable"] as const
+).map((type) => GARBAGE_META[type]);
 
 const garbageDot: Record<ShiftDay["garbageType"], string> = {
   burnable: "bg-red-500",
@@ -41,17 +41,24 @@ function cardClass(day: ShiftDay, todayKey: string): string {
   const today = day.date === todayKey;
   if (day.garbageType === "off") return `${base} border-stone-200 bg-stone-100`;
   if (slotIsOpen(day)) {
-    return `${base} border-[#1f6a45] bg-emerald-50 ${today ? "ring-2 ring-[#1f6a45]" : ""}`;
+    return `${base} border-[#1f6a45] bg-emerald-50 ${
+      today ? "ring-2 ring-[#1f6a45]" : ""
+    }`;
   }
-  return `${base} border-[#e4d9c8] bg-white ${today ? "ring-2 ring-[#1f6a45]" : ""}`;
+  return `${base} border-[#e4d9c8] bg-white ${
+    today ? "ring-2 ring-[#1f6a45]" : ""
+  }`;
 }
 
-function groupByWeek(days: ShiftDay[]): { id: string; label: string; days: ShiftDay[] }[] {
+function groupByWeek(
+  days: ShiftDay[]
+): { id: string; label: string; days: ShiftDay[] }[] {
   const groups: { id: string; days: ShiftDay[] }[] = [];
   for (const day of days) {
     const date = parseDateKey(day.date);
     const last = groups[groups.length - 1];
-    if (!last || date.getDay() === 0) groups.push({ id: day.date, days: [day] });
+    if (!last || date.getDay() === 0)
+      groups.push({ id: day.date, days: [day] });
     else last.days.push(day);
   }
   return groups.map((group) => {
@@ -65,7 +72,12 @@ function groupByWeek(days: ShiftDay[]): { id: string; label: string; days: Shift
   });
 }
 
-function matchesFilter(day: ShiftDay, onlyMine: boolean, onlyOpen: boolean, userId: string | undefined) {
+function matchesFilter(
+  day: ShiftDay,
+  onlyMine: boolean,
+  onlyOpen: boolean,
+  userId: string | undefined
+) {
   if (day.garbageType === "off") return !onlyMine && !onlyOpen;
   const mine = day.slots.some((slot) => slot.assigneeId === userId);
   const open = slotIsOpen(day);
@@ -81,7 +93,8 @@ function highlightMark(onlyMine: boolean, onlyOpen: boolean): string {
 }
 
 function filterCaption(onlyMine: boolean, onlyOpen: boolean): string {
-  if (onlyMine && onlyOpen) return "緑の日は、あなたの担当で、空き枠もある日です。";
+  if (onlyMine && onlyOpen)
+    return "緑の日は、あなたの担当で、空き枠もある日です。";
   if (onlyMine) return "緑の日が、あなたの担当です。";
   return "緑の日が、空き枠です。";
 }
@@ -91,27 +104,59 @@ export function CalendarView() {
   const [onlyMine, setOnlyMine] = useState(false);
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const monthKey = `${view.year}-${view.month}`;
-  const [pickedWeek, setPickedWeek] = useState<{ monthKey: string; index: number } | null>(null);
   const closeShift = useCallback(() => setSelected(null), []);
+  const weekNavRef = useRef<HTMLElement>(null);
+  const [weekNavHeight, setWeekNavHeight] = useState(56);
 
   const monthDays = shiftsForMonth(view.year, view.month);
   const filtering = onlyMine || onlyOpen;
   const weeks = groupByWeek(monthDays);
-  const todayWeekIndex = weeks.findIndex((week) =>
-    week.days.some((day) => day.date === todayKey),
-  );
-  const selectedIndex =
-    pickedWeek?.monthKey === monthKey
-      ? Math.min(pickedWeek.index, Math.max(weeks.length - 1, 0))
-      : todayWeekIndex >= 0
-        ? todayWeekIndex
-        : 0;
-  const selectedWeek = weeks[selectedIndex];
-  const visibleDays =
-    selectedWeek?.days.filter((day) =>
-      matchesFilter(day, onlyMine, onlyOpen, currentUser?.id),
-    ) ?? [];
+  const jumpWeekId =
+    (
+      weeks.find((week) => week.days.some((day) => day.date === todayKey)) ??
+      weeks[0]
+    )?.id ?? "";
+  const weekIds = weeks.map((week) => week.id).join("|");
+  const [activeWeekId, setActiveWeekId] = useState(jumpWeekId);
+
+  useEffect(() => {
+    if (filtering || !weekIds) return;
+    const nav = weekNavRef.current;
+    if (!nav) return;
+    const update = () => setWeekNavHeight(nav.offsetHeight);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [filtering, weekIds]);
+
+  useEffect(() => {
+    if (filtering || !jumpWeekId) return;
+    setTimeout(() => setActiveWeekId(jumpWeekId), 0);
+    document
+      .getElementById(`week-${jumpWeekId}`)
+      ?.scrollIntoView({ block: "start" });
+  }, [filtering, jumpWeekId]);
+
+  useEffect(() => {
+    if (filtering || !weekIds) return;
+    const ids = weekIds.split("|");
+    const markActiveWeek = () => {
+      const line = weekNavHeight + 16;
+      let current = ids[0] ?? "";
+      for (const id of ids) {
+        const section = document.getElementById(`week-${id}`);
+        if (section && section.getBoundingClientRect().top <= line)
+          current = id;
+      }
+      setActiveWeekId((previous) =>
+        previous === current ? previous : current
+      );
+    };
+    markActiveWeek();
+    window.addEventListener("scroll", markActiveWeek, { passive: true });
+    return () => window.removeEventListener("scroll", markActiveWeek);
+  }, [filtering, weekIds, weekNavHeight]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -119,9 +164,9 @@ export function CalendarView() {
       <p className="text-base leading-relaxed text-stone-700">
         {filtering
           ? "ひと月を一覧しています。色のついた日を押すと、詳細を見られます。"
-          : "日曜・月曜はお休みです。週を選んで、日付を押すと担当や報酬を確認できます。"}
+          : "日付を押すと担当や報酬を確認できます。下へスクロールすると月末まで見られ、週を押すとその位置まで移動します。"}
       </p>
-      <ul className="flex flex-wrap gap-2" aria-label="ゴミの色">
+      {/* <ul className="flex flex-wrap gap-2" aria-label="ゴミの色">
         {legend.map((item) => (
           <li
             key={item.short}
@@ -130,13 +175,33 @@ export function CalendarView() {
             {item.short}
           </li>
         ))}
-      </ul>
+      </ul> */}
       <div className="grid grid-cols-1 gap-2">
-        <FilterButton pressed={onlyMine} onClick={() => setOnlyMine((value) => !value)}>
-          自分の担当日のみ表示
+        <FilterButton
+          pressed={onlyMine}
+          onClick={() => {
+            if (onlyMine) {
+              setOnlyMine(false);
+              setOnlyOpen(false);
+              return;
+            }
+            setOnlyMine(true);
+          }}
+        >
+          {onlyMine ? "週表示に戻す" : "自分の担当日のみ表示"}
         </FilterButton>
-        <FilterButton pressed={onlyOpen} onClick={() => setOnlyOpen((value) => !value)}>
-          空き枠のみ表示
+        <FilterButton
+          pressed={onlyOpen}
+          onClick={() => {
+            if (onlyOpen) {
+              setOnlyMine(false);
+              setOnlyOpen(false);
+              return;
+            }
+            setOnlyOpen(true);
+          }}
+        >
+          {onlyOpen ? "週表示に戻す" : "空き枠のみ表示"}
         </FilterButton>
       </div>
       {filtering ? (
@@ -149,66 +214,81 @@ export function CalendarView() {
           onSelect={setSelected}
         />
       ) : weeks.length > 0 ? (
-        <div
-          role="tablist"
-          aria-label="週"
-          className={`grid gap-1 ${weeks.length > 5 ? "grid-cols-3" : ""}`}
-          style={
-            weeks.length > 5
-              ? undefined
-              : { gridTemplateColumns: `repeat(${weeks.length}, minmax(0, 1fr))` }
-          }
-        >
-          {weeks.map((week, index) => {
-            const active = index === selectedIndex;
-            const hasToday = week.days.some((day) => day.date === todayKey);
-            return (
-              <button
+        <>
+          <nav
+            ref={weekNavRef}
+            aria-label="週"
+            className="sticky top-0 z-10 -mx-4 bg-[#fbf8f3] px-4 py-2"
+          >
+            <div
+              className={`grid gap-1 ${weeks.length > 5 ? "grid-cols-3" : ""}`}
+              style={
+                weeks.length > 5
+                  ? undefined
+                  : {
+                      gridTemplateColumns: `repeat(${weeks.length}, minmax(0, 1fr))`,
+                    }
+              }
+            >
+              {weeks.map((week, index) => {
+                const active = week.id === activeWeekId;
+                const hasToday = week.days.some((day) => day.date === todayKey);
+                return (
+                  <a
+                    key={week.id}
+                    href={`#week-${week.id}`}
+                    aria-current={active ? "true" : undefined}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      document
+                        .getElementById(`week-${week.id}`)
+                        ?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                    }}
+                    className={`flex min-h-12 items-center justify-center rounded-xl px-0.5 text-base font-bold whitespace-nowrap ${
+                      active
+                        ? "bg-[#1d4e89] text-white"
+                        : hasToday
+                        ? "border-2 border-[#1f6a45] bg-white text-[#1f6a45]"
+                        : "border-2 border-stone-300 bg-white text-stone-900"
+                    }`}
+                  >
+                    {index + 1}週目
+                  </a>
+                );
+              })}
+            </div>
+          </nav>
+          <div className="flex flex-col gap-4">
+            {weeks.map((week) => (
+              <section
                 key={week.id}
-                type="button"
-                role="tab"
-                id={`week-tab-${week.id}`}
-                aria-selected={active}
-                aria-controls="week-panel"
-                onClick={() => setPickedWeek({ monthKey, index })}
-                className={`min-h-12 rounded-xl px-0.5 text-base font-bold whitespace-nowrap ${
-                  active
-                    ? "bg-[#1d4e89] text-white"
-                    : hasToday
-                      ? "border-2 border-[#1f6a45] bg-white text-[#1f6a45]"
-                      : "border-2 border-stone-300 bg-white text-stone-900"
-                }`}
+                id={`week-${week.id}`}
+                aria-labelledby={`week-label-${week.id}`}
+                style={{ scrollMarginTop: weekNavHeight + 8 }}
+                className="flex flex-col gap-2"
               >
-                {index + 1}週目
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-      {!filtering && selectedWeek ? (
-        <section
-          role="tabpanel"
-          id="week-panel"
-          aria-labelledby={`week-tab-${selectedWeek.id}`}
-          className="flex flex-col gap-2"
-        >
-          <h3 className="px-1 text-base font-bold text-stone-700">{selectedWeek.label}</h3>
-          {visibleDays.length === 0 ? (
-            <p className="rounded-2xl bg-white px-4 py-6 text-center text-lg text-stone-800">
-              当てはまる日がありません。
-            </p>
-          ) : (
-            visibleDays.map((day) => (
-              <DayCard
-                key={day.date}
-                day={day}
-                todayKey={todayKey}
-                members={members}
-                onSelect={() => setSelected(day.date)}
-              />
-            ))
-          )}
-        </section>
+                <h3
+                  id={`week-label-${week.id}`}
+                  className="px-1 text-base font-bold text-stone-700"
+                >
+                  {week.label}
+                </h3>
+                {week.days.map((day) => (
+                  <DayCard
+                    key={day.date}
+                    day={day}
+                    todayKey={todayKey}
+                    members={members}
+                    onSelect={() => setSelected(day.date)}
+                  />
+                ))}
+              </section>
+            ))}
+          </div>
+        </>
       ) : null}
       {selected ? (
         <ShiftModal key={selected} dateKey={selected} onClose={closeShift} />

@@ -32,7 +32,7 @@ export function ManageView() {
   }
 
   function changeRole(memberId: string, role: Role) {
-    report(setMemberRole(memberId, role), "役割を保存しました");
+    report(setMemberRole(memberId, role), "役割を保存しました。管理者手当は翌月から変わります。");
   }
 
   function startEdit(member: Member) {
@@ -51,7 +51,7 @@ export function ManageView() {
     <div className="flex flex-col gap-4">
       <h2 className="text-2xl font-bold text-stone-950">住人の管理</h2>
       <p className="text-base leading-relaxed text-stone-700">
-        住人の追加と削除、部屋、名前、振込先の口座を編集できます。管理者にすると、備考、特別手当、募集人数、代わりの担当登録ができます。
+        住人の追加と削除、部屋、名前、振込先の口座を編集できます。管理者にすると、備考、特別手当、募集人数、代わりの担当登録ができます。管理者手当の1万円は、変えた翌月から付きます。
       </p>
 
       <form

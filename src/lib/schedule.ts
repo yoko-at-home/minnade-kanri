@@ -2,6 +2,8 @@ import type { GarbageType, ShiftRecord, ShiftSlot } from "@/lib/types";
 
 export const BASE_REWARD = 5000;
 export const SPECIAL_ALLOWANCE = 1000;
+/** 管理者の役割がある人へ、月ごとに上乗せする。 */
+export const ADMIN_ALLOWANCE = 10000;
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 

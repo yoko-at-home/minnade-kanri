@@ -9,7 +9,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { membersFrom, PASSPHRASE, profileError, type MemberEdits } from "@/lib/members";
+import {
+  dropAllowanceMember,
+  membersFrom,
+  PASSPHRASE,
+  profileError,
+  scheduleAllowanceFromNextMonth,
+  type MemberEdits,
+} from "@/lib/members";
 import { localShiftStore } from "@/lib/persistence";
 import {
   addMonths,
@@ -34,7 +41,7 @@ import {
   subscribeClock,
   updateStore,
 } from "@/lib/store";
-import type { ActionResult, Member, Role, ShiftDay, ShiftRecord } from "@/lib/types";
+import type { ActionResult, AllowanceTerm, Member, Role, ShiftDay, ShiftRecord } from "@/lib/types";
 
 type ViewMonth = { year: number; month: number };
 
@@ -52,6 +59,7 @@ type AppContextValue = {
   addMember: (room: string, name: string) => ActionResult;
   updateMember: (memberId: string, edits: MemberEdits) => ActionResult;
   removeMember: (memberId: string) => ActionResult;
+  allowanceSchedule: AllowanceTerm[];
   view: ViewMonth;
   today: ViewMonth;
   todayKey: string;
@@ -113,7 +121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const stored = useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
   const clock = useSyncExternalStore(subscribeClock, getClockSnapshot, getServerClock);
   const ready = !isServerSnapshot(stored) && !isServerClock(clock);
-  const { currentUserId, roster, roles, shifts } = stored;
+  const { currentUserId, roster, roles, shifts, allowanceSchedule } = stored;
   const [pickedMonth, setPickedMonth] = useState<ViewMonth | null>(null);
   const view = useMemo<ViewMonth>(
     () => pickedMonth ?? { year: clock.year, month: clock.month },
@@ -167,6 +175,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ready,
       currentUser,
       members,
+      allowanceSchedule,
       setMemberRole(memberId, role) {
         if (!currentUser?.systemAdmin) {
           return { ok: false, reason: "役割を変えられるのはシステム管理者です。" };
@@ -174,10 +183,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!memberById(memberId)) {
           return { ok: false, reason: "メンバーが見つかりません。" };
         }
-        updateStore((current) => ({
-          ...current,
-          roles: { ...current.roles, [memberId]: role },
-        }));
+        updateStore((current) => {
+          const nextRoles = { ...current.roles, [memberId]: role };
+          const nextAdminIds = current.roster
+            .filter((entry) => nextRoles[entry.id] === "admin")
+            .map((entry) => entry.id);
+          return {
+            ...current,
+            roles: nextRoles,
+            allowanceSchedule: scheduleAllowanceFromNextMonth(
+              current.allowanceSchedule,
+              clock.year,
+              clock.month,
+              nextAdminIds,
+            ),
+          };
+        });
         return success;
       },
       addMember(room, name) {
@@ -253,6 +274,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ...current,
             roster: current.roster.filter((entry) => entry.id !== memberId),
             roles,
+            allowanceSchedule: dropAllowanceMember(current.allowanceSchedule, memberId),
             shifts: dropAssignees(current.shifts, (id) => id === memberId),
           };
         });
@@ -430,7 +452,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return success;
       },
     };
-  }, [clock.dateKey, currentUserId, getShift, ready, replaceShift, roles, roster, shifts, today, view]);
+  }, [
+    allowanceSchedule,
+    clock.dateKey,
+    clock.month,
+    clock.year,
+    currentUserId,
+    getShift,
+    ready,
+    replaceShift,
+    roles,
+    roster,
+    shifts,
+    today,
+    view,
+  ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

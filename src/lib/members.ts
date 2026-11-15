@@ -1,4 +1,5 @@
-import type { AccountType, Member, MemberProfile, Role } from "@/lib/types";
+import { addMonths } from "@/lib/schedule";
+import type { AccountType, AllowanceTerm, Member, MemberProfile, Role } from "@/lib/types";
 
 export const PASSPHRASE = "1234";
 
@@ -97,6 +98,86 @@ export function normalizeRoles(value: unknown, roster: MemberProfile[]): Record<
     roles[entry.id] = DEFAULT_ROLE_BY_ID[entry.id] === "admin" ? "admin" : "resident";
   }
   return roles;
+}
+
+function monthIndex(year: number, month: number): number {
+  return year * 12 + month;
+}
+
+function sameMemberIds(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false;
+  const ids = new Set(left);
+  return right.every((id) => ids.has(id));
+}
+
+function adminIdsFromRoles(roles: Record<string, Role>): string[] {
+  return Object.entries(roles)
+    .filter(([, role]) => role === "admin")
+    .map(([id]) => id);
+}
+
+/** 保存が無いときは、今の管理者をすべての月の手当対象にする。 */
+export function normalizeAllowanceSchedule(
+  value: unknown,
+  roles: Record<string, Role>,
+): AllowanceTerm[] {
+  const fallback = [{ year: 0, month: 0, memberIds: adminIdsFromRoles(roles) }];
+  if (!Array.isArray(value)) return fallback;
+  const terms: AllowanceTerm[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Partial<AllowanceTerm>;
+    const year = record.year;
+    const month = record.month;
+    if (!Number.isInteger(year) || !Number.isInteger(month)) continue;
+    if (!Array.isArray(record.memberIds)) continue;
+    const memberIds = [
+      ...new Set(record.memberIds.filter((id): id is string => typeof id === "string" && id.length > 0)),
+    ];
+    terms.push({ year: year as number, month: month as number, memberIds });
+  }
+  if (terms.length === 0) return fallback;
+  const byMonth = new Map<number, AllowanceTerm>();
+  for (const term of terms) byMonth.set(monthIndex(term.year, term.month), term);
+  return [...byMonth.values()].sort(
+    (left, right) => monthIndex(left.year, left.month) - monthIndex(right.year, right.month),
+  );
+}
+
+/** その月に管理者手当が付く人。直前の変更までを見る。 */
+export function allowanceIdsForMonth(
+  schedule: AllowanceTerm[],
+  year: number,
+  month: number,
+): Set<string> {
+  const target = monthIndex(year, month);
+  let memberIds: string[] = [];
+  for (const term of schedule) {
+    if (monthIndex(term.year, term.month) <= target) memberIds = term.memberIds;
+  }
+  return new Set(memberIds);
+}
+
+/** 役割の変更は今すぐ、手当の対象は翌月から。同じ月のやり直しは翌月の項を上書きする。 */
+export function scheduleAllowanceFromNextMonth(
+  schedule: AllowanceTerm[],
+  todayYear: number,
+  todayMonth: number,
+  nextAdminIds: string[],
+): AllowanceTerm[] {
+  const effective = addMonths(todayYear, todayMonth, 1);
+  const effectiveIndex = monthIndex(effective.year, effective.month);
+  const kept = schedule.filter((term) => monthIndex(term.year, term.month) < effectiveIndex);
+  const previous = kept[kept.length - 1];
+  if (previous && sameMemberIds(previous.memberIds, nextAdminIds)) return kept;
+  return [...kept, { year: effective.year, month: effective.month, memberIds: [...nextAdminIds] }];
+}
+
+export function dropAllowanceMember(schedule: AllowanceTerm[], memberId: string): AllowanceTerm[] {
+  return schedule.map((term) => ({
+    ...term,
+    memberIds: term.memberIds.filter((id) => id !== memberId),
+  }));
 }
 
 export function memberFrom(profile: MemberProfile, roles: Record<string, Role>): Member {

@@ -1,4 +1,10 @@
-import { DEFAULT_ROLES, DEFAULT_ROSTER, normalizeRoles, normalizeRoster } from "@/lib/members";
+import {
+  DEFAULT_ROLES,
+  DEFAULT_ROSTER,
+  normalizeAllowanceSchedule,
+  normalizeRoles,
+  normalizeRoster,
+} from "@/lib/members";
 import { localShiftStore } from "@/lib/persistence";
 import { normalizeRecord, toDateKey } from "@/lib/schedule";
 import { seedShifts } from "@/lib/seed";
@@ -42,6 +48,7 @@ const SERVER_SNAPSHOT: StoredState = {
   currentUserId: null,
   roster: DEFAULT_ROSTER,
   roles: DEFAULT_ROLES,
+  allowanceSchedule: normalizeAllowanceSchedule(undefined, DEFAULT_ROLES),
   shifts: {},
 };
 
@@ -57,24 +64,35 @@ function normalizeMap(shifts: Record<string, ShiftRecord>): Record<string, Shift
 }
 
 function ensure(): StoredState {
-  if (memory?.roster) return memory;
+  if (memory?.roster && memory.allowanceSchedule) return memory;
+  if (memory?.roster) {
+    memory = {
+      ...memory,
+      allowanceSchedule: normalizeAllowanceSchedule(memory.allowanceSchedule, memory.roles),
+    };
+    return memory;
+  }
   const saved = localShiftStore.load();
   if (saved) {
     const roster = normalizeRoster(saved.roster);
+    const roles = normalizeRoles(saved.roles, roster);
     memory = {
       version: 1,
       currentUserId: saved.currentUserId,
       roster,
-      roles: normalizeRoles(saved.roles, roster),
+      roles,
+      allowanceSchedule: normalizeAllowanceSchedule(saved.allowanceSchedule, roles),
       shifts: normalizeMap(saved.shifts),
     };
   } else {
     const roster = DEFAULT_ROSTER.map((entry) => ({ ...entry }));
+    const roles = normalizeRoles(DEFAULT_ROLES, roster);
     memory = {
       version: 1,
       currentUserId: null,
       roster,
-      roles: normalizeRoles(DEFAULT_ROLES, roster),
+      roles,
+      allowanceSchedule: normalizeAllowanceSchedule(undefined, roles),
       shifts: seedShifts(),
     };
   }

@@ -1,11 +1,12 @@
 import { accountTypeLabel } from "@/lib/members";
-import { monthTitle, rewardOf } from "@/lib/schedule";
+import { ADMIN_ALLOWANCE, monthTitle, rewardOf } from "@/lib/schedule";
 import type { Member, ShiftDay } from "@/lib/types";
 
 export type MemberSummary = {
   memberId: string;
   count: number;
   specialCount: number;
+  adminAllowance: number;
   pay: number;
 };
 
@@ -28,6 +29,7 @@ export function summarizeMonth(
   days: ShiftDay[],
   userId: string | null,
   members: Member[],
+  allowanceIds: ReadonlySet<string>,
 ): MonthSummary {
   const workDays = days.filter((day) => day.garbageType !== "off");
   const totals = new Map<string, MemberSummary>();
@@ -61,6 +63,7 @@ export function summarizeMonth(
           memberId: slot.assigneeId,
           count: 0,
           specialCount: 0,
+          adminAllowance: 0,
           pay: 0,
         };
         current.count += 1;
@@ -92,16 +95,26 @@ export function summarizeMonth(
     }
   }
 
-  const known = new Set(members.map((member) => member.id));
-  const listed = [...totals.values()].filter((item) => known.has(item.memberId));
+  const listed = members.map((member) => {
+    const row = totals.get(member.id);
+    const adminAllowance = allowanceIds.has(member.id) ? ADMIN_ALLOWANCE : 0;
+    return {
+      memberId: member.id,
+      count: row?.count ?? 0,
+      specialCount: row?.specialCount ?? 0,
+      adminAllowance,
+      pay: (row?.pay ?? 0) + adminAllowance,
+    };
+  });
+  const allowanceTotal = listed.reduce((sum, row) => sum + row.adminAllowance, 0);
 
   return {
     totalSlots,
     filledSlots,
     openSlots,
     seekingSlots,
-    confirmedPay,
-    potentialPay,
+    confirmedPay: confirmedPay + allowanceTotal,
+    potentialPay: potentialPay + allowanceTotal,
     members: listed,
     simulation: { extraPay, extraCount, swapCount },
   };
@@ -132,6 +145,7 @@ export function summaryCsv(
       member.name,
       String(row?.count ?? 0),
       String(row?.specialCount ?? 0),
+      String(row?.adminAllowance ?? 0),
       String(row?.pay ?? 0),
       member.bankName,
       member.branchName,
@@ -142,11 +156,12 @@ export function summaryCsv(
   });
   const count = rows.reduce((sum, row) => sum + Number(row[2]), 0);
   const specialCount = rows.reduce((sum, row) => sum + Number(row[3]), 0);
+  const allowanceTotal = rows.reduce((sum, row) => sum + Number(row[4]), 0);
   const lines = [
-    ["対象月", monthTitle(year, month), "", "", "", "", "", "", "", ""],
-    ["部屋", "名前", "担当回数", "特別手当回数", "報酬", "銀行名", "支店名", "口座種別", "口座番号", "口座名義"],
+    ["対象月", monthTitle(year, month), "", "", "", "", "", "", "", "", ""],
+    ["部屋", "名前", "担当回数", "特別手当回数", "管理者手当", "報酬", "銀行名", "支店名", "口座種別", "口座番号", "口座名義"],
     ...rows,
-    ["合計", "", String(count), String(specialCount), String(summary.confirmedPay), "", "", "", "", ""],
+    ["合計", "", String(count), String(specialCount), String(allowanceTotal), String(summary.confirmedPay), "", "", "", "", ""],
   ];
   return lines.map((line) => line.map(csvCell).join(",")).join("\r\n");
 }

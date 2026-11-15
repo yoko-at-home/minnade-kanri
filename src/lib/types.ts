@@ -47,6 +47,13 @@ export type ShiftDay = ShiftRecord & {
   garbageType: GarbageType;
 };
 
+/** この年月から、管理者手当をもらう人。月の途中の変更は、翌月の項として足す。 */
+export type AllowanceTerm = {
+  year: number;
+  month: number;
+  memberIds: string[];
+};
+
 export type StoredState = {
   version: 1;
   currentUserId: string | null;
@@ -54,6 +61,8 @@ export type StoredState = {
   roster: MemberProfile[];
   /** メンバーIDごとの役割。無い人は住人として扱う。 */
   roles: Record<string, Role>;
+  /** 管理者手当の対象。未保存のときは、今の管理者を最初からとして扱う。 */
+  allowanceSchedule: AllowanceTerm[];
   shifts: Record<string, ShiftRecord>;
 };
 
