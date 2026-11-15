@@ -2,7 +2,7 @@
 
 import { MonthSwitcher } from "@/components/MonthSwitcher";
 import { useApp } from "@/context/AppContext";
-import { displayName, memberLabel } from "@/lib/members";
+import { accountHint, displayName, memberLabel } from "@/lib/members";
 import { formatYen } from "@/lib/schedule";
 import { summarizeMonth, summaryCsv, summaryCsvFilename, type MonthSummary } from "@/lib/summary";
 import type { Member } from "@/lib/types";
@@ -78,6 +78,7 @@ export function SummaryView() {
             pay: 0,
           };
           const isMe = member.id === currentUser?.id;
+          const hint = accountHint(member);
           return (
             <article
               key={member.id}
@@ -85,11 +86,14 @@ export function SummaryView() {
                 isMe ? "border-[#1f6a45] bg-emerald-50" : "border-[#e4d9c8] bg-white"
               }`}
             >
-              <h3 className="text-lg font-bold text-stone-950">
-                {displayName(member)}
-                {member.role === "admin" ? "（管理者）" : ""}
-                {isMe ? "（あなた）" : ""}
-              </h3>
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="shrink-0 text-lg font-bold text-stone-950">
+                  {displayName(member)}
+                  {member.role === "admin" ? "（管理者）" : ""}
+                  {isMe ? "（あなた）" : ""}
+                </h3>
+                {hint ? <p className="min-w-0 text-right text-sm text-stone-400">{hint}</p> : null}
+              </div>
               <p className="mt-1 text-base text-stone-800">
                 担当 {row.count}回
                 {row.specialCount > 0 ? `（うち特別手当 ${row.specialCount}回）` : ""}

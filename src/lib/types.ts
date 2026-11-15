@@ -1,12 +1,20 @@
 export type Role = "resident" | "admin";
 
-/** 部屋と名前。役割（管理者かどうか）は別に保存する。 */
+/** 普通預金か当座預金か。未入力は空文字。 */
+export type AccountType = "" | "ordinary" | "checking";
+
+/** 部屋と名前、振込先。役割（管理者かどうか）は別に保存する。 */
 export type MemberProfile = {
   id: string;
   room: string;
   name: string;
   /** 管理画面を開ける人。住人の追加では付かない。 */
   systemAdmin: boolean;
+  bankName: string;
+  branchName: string;
+  accountType: AccountType;
+  accountNumber: string;
+  accountHolder: string;
 };
 
 export type Member = MemberProfile & {

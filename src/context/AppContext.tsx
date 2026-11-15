@@ -9,7 +9,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { membersFrom, PASSPHRASE, profileError } from "@/lib/members";
+import { membersFrom, PASSPHRASE, profileError, type MemberEdits } from "@/lib/members";
 import { localShiftStore } from "@/lib/persistence";
 import {
   addMonths,
@@ -50,7 +50,7 @@ type AppContextValue = {
   members: Member[];
   setMemberRole: (memberId: string, role: Role) => ActionResult;
   addMember: (room: string, name: string) => ActionResult;
-  updateMember: (memberId: string, room: string, name: string) => ActionResult;
+  updateMember: (memberId: string, edits: MemberEdits) => ActionResult;
   view: ViewMonth;
   today: ViewMonth;
   todayKey: string;
@@ -165,34 +165,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!currentUser?.systemAdmin) {
           return { ok: false, reason: "住人を追加できるのはシステム管理者です。" };
         }
-        const reason = profileError(room, name, roster);
+        const reason = profileError(
+          { room, name, bankName: "", branchName: "", accountType: "", accountNumber: "", accountHolder: "" },
+          roster,
+        );
         if (reason) return { ok: false, reason };
         const id = `member-${crypto.randomUUID()}`;
         updateStore((current) => ({
           ...current,
           roster: [
             ...current.roster,
-            { id, room: room.trim(), name: name.trim(), systemAdmin: false },
+            {
+              id,
+              room: room.trim(),
+              name: name.trim(),
+              systemAdmin: false,
+              bankName: "",
+              branchName: "",
+              accountType: "",
+              accountNumber: "",
+              accountHolder: "",
+            },
           ],
           roles: { ...current.roles, [id]: "resident" },
         }));
         return success;
       },
-      updateMember(memberId, room, name) {
+      updateMember(memberId, edits) {
         if (!currentUser?.systemAdmin) {
           return { ok: false, reason: "住人を編集できるのはシステム管理者です。" };
         }
         if (!memberById(memberId)) {
           return { ok: false, reason: "メンバーが見つかりません。" };
         }
-        const reason = profileError(room, name, roster, memberId);
+        const reason = profileError(edits, roster, memberId);
         if (reason) return { ok: false, reason };
-        const roomText = room.trim();
-        const nameText = name.trim();
+        const accountNumber = edits.accountNumber.replace(/[\s-]/g, "");
         updateStore((current) => ({
           ...current,
           roster: current.roster.map((entry) =>
-            entry.id === memberId ? { ...entry, room: roomText, name: nameText } : entry,
+            entry.id === memberId
+              ? {
+                  ...entry,
+                  room: edits.room.trim(),
+                  name: edits.name.trim(),
+                  bankName: edits.bankName.trim(),
+                  branchName: edits.branchName.trim(),
+                  accountType: edits.accountType,
+                  accountNumber,
+                  accountHolder: edits.accountHolder.trim(),
+                }
+              : entry,
           ),
         }));
         return success;

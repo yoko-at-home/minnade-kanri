@@ -1,3 +1,4 @@
+import { accountTypeLabel } from "@/lib/members";
 import { monthTitle, rewardOf } from "@/lib/schedule";
 import type { Member, ShiftDay } from "@/lib/types";
 
@@ -111,6 +112,12 @@ function csvCell(value: string): string {
   return value;
 }
 
+/** 先頭が0の口座番号を、Excelが数字として消さないようにする。 */
+function csvAccountNumber(value: string): string {
+  if (value.startsWith("0")) return `="${value}"`;
+  return value;
+}
+
 /** 表示中の月の部屋ごと報酬。Excelで開けるよう、呼び出し側でBOMを付ける。 */
 export function summaryCsv(
   year: number,
@@ -126,15 +133,20 @@ export function summaryCsv(
       String(row?.count ?? 0),
       String(row?.specialCount ?? 0),
       String(row?.pay ?? 0),
+      member.bankName,
+      member.branchName,
+      accountTypeLabel(member.accountType),
+      csvAccountNumber(member.accountNumber),
+      member.accountHolder,
     ];
   });
   const count = rows.reduce((sum, row) => sum + Number(row[2]), 0);
   const specialCount = rows.reduce((sum, row) => sum + Number(row[3]), 0);
   const lines = [
-    ["対象月", monthTitle(year, month), "", "", ""],
-    ["部屋", "名前", "担当回数", "特別手当回数", "報酬"],
+    ["対象月", monthTitle(year, month), "", "", "", "", "", "", "", ""],
+    ["部屋", "名前", "担当回数", "特別手当回数", "報酬", "銀行名", "支店名", "口座種別", "口座番号", "口座名義"],
     ...rows,
-    ["合計", "", String(count), String(specialCount), String(summary.confirmedPay)],
+    ["合計", "", String(count), String(specialCount), String(summary.confirmedPay), "", "", "", "", ""],
   ];
   return lines.map((line) => line.map(csvCell).join(",")).join("\r\n");
 }

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { displayName } from "@/lib/members";
-import type { Member, Role } from "@/lib/types";
+import { accountTypeLabel, displayName } from "@/lib/members";
+import type { AccountType, Member, Role } from "@/lib/types";
 
 export function ManageView() {
   const { currentUser, members, setMemberRole, addMember, updateMember } = useApp();
@@ -13,6 +13,11 @@ export function ManageView() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRoom, setEditRoom] = useState("");
   const [editName, setEditName] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [accountType, setAccountType] = useState<AccountType>("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountHolder, setAccountHolder] = useState("");
 
   if (!currentUser?.systemAdmin) {
     return (
@@ -34,6 +39,11 @@ export function ManageView() {
     setEditingId(member.id);
     setEditRoom(member.room);
     setEditName(member.name);
+    setBankName(member.bankName);
+    setBranchName(member.branchName);
+    setAccountType(member.accountType);
+    setAccountNumber(member.accountNumber);
+    setAccountHolder(member.accountHolder);
     setMessage(null);
   }
 
@@ -41,7 +51,7 @@ export function ManageView() {
     <div className="flex flex-col gap-4">
       <h2 className="text-2xl font-bold text-stone-950">住人の管理</h2>
       <p className="text-base leading-relaxed text-stone-700">
-        部屋と名前を追加・編集できます。管理者にすると、備考、特別手当、募集人数、代わりの担当登録ができます。
+        部屋、名前、振込先の口座を追加・編集できます。管理者にすると、備考、特別手当、募集人数、代わりの担当登録ができます。
       </p>
 
       <form
@@ -98,6 +108,7 @@ export function ManageView() {
                 {member.systemAdmin ? (
                   <p className="mt-1 text-base text-stone-700">システム管理者です。この画面を使えます。</p>
                 ) : null}
+                <AccountLine member={member} />
               </div>
               <button
                 type="button"
@@ -116,7 +127,15 @@ export function ManageView() {
                 className="mt-3 flex flex-col gap-3"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  const result = updateMember(member.id, editRoom, editName);
+                  const result = updateMember(member.id, {
+                    room: editRoom,
+                    name: editName,
+                    bankName,
+                    branchName,
+                    accountType,
+                    accountNumber,
+                    accountHolder,
+                  });
                   report(result, "住人を保存しました");
                   if (result.ok) setEditingId(null);
                 }}
@@ -138,6 +157,60 @@ export function ManageView() {
                   id={`name-${member.id}`}
                   value={editName}
                   onChange={(event) => setEditName(event.target.value)}
+                  autoComplete="off"
+                  className="h-14 rounded-2xl border-2 border-stone-300 px-4 text-lg"
+                />
+                <label className="text-base font-bold text-stone-900" htmlFor={`bank-${member.id}`}>
+                  銀行名
+                </label>
+                <input
+                  id={`bank-${member.id}`}
+                  value={bankName}
+                  onChange={(event) => setBankName(event.target.value)}
+                  autoComplete="off"
+                  className="h-14 rounded-2xl border-2 border-stone-300 px-4 text-lg"
+                />
+                <label className="text-base font-bold text-stone-900" htmlFor={`branch-${member.id}`}>
+                  支店名
+                </label>
+                <input
+                  id={`branch-${member.id}`}
+                  value={branchName}
+                  onChange={(event) => setBranchName(event.target.value)}
+                  autoComplete="off"
+                  className="h-14 rounded-2xl border-2 border-stone-300 px-4 text-lg"
+                />
+                <label className="text-base font-bold text-stone-900" htmlFor={`type-${member.id}`}>
+                  口座種別
+                </label>
+                <select
+                  id={`type-${member.id}`}
+                  value={accountType}
+                  onChange={(event) => setAccountType(event.target.value as AccountType)}
+                  className="h-14 rounded-2xl border-2 border-stone-300 bg-white px-4 text-lg"
+                >
+                  <option value="">未設定</option>
+                  <option value="ordinary">普通</option>
+                  <option value="checking">当座</option>
+                </select>
+                <label className="text-base font-bold text-stone-900" htmlFor={`number-${member.id}`}>
+                  口座番号
+                </label>
+                <input
+                  id={`number-${member.id}`}
+                  value={accountNumber}
+                  onChange={(event) => setAccountNumber(event.target.value)}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  className="h-14 rounded-2xl border-2 border-stone-300 px-4 text-lg"
+                />
+                <label className="text-base font-bold text-stone-900" htmlFor={`holder-${member.id}`}>
+                  口座名義
+                </label>
+                <input
+                  id={`holder-${member.id}`}
+                  value={accountHolder}
+                  onChange={(event) => setAccountHolder(event.target.value)}
                   autoComplete="off"
                   className="h-14 rounded-2xl border-2 border-stone-300 px-4 text-lg"
                 />
@@ -171,6 +244,21 @@ export function ManageView() {
         );
       })}
     </div>
+  );
+}
+
+function AccountLine({ member }: { member: Member }) {
+  const parts = [
+    member.bankName,
+    member.branchName,
+    accountTypeLabel(member.accountType),
+    member.accountNumber,
+    member.accountHolder,
+  ].filter(Boolean);
+  return (
+    <p className="mt-1 text-base text-stone-700">
+      {parts.length > 0 ? `振込先 ${parts.join(" ")}` : "振込先は未登録です"}
+    </p>
   );
 }
 
