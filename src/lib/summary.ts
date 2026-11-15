@@ -1,6 +1,5 @@
-import { findMember, MEMBERS } from "@/lib/members";
 import { monthTitle, rewardOf } from "@/lib/schedule";
-import type { ShiftDay } from "@/lib/types";
+import type { Member, ShiftDay } from "@/lib/types";
 
 export type MemberSummary = {
   memberId: string;
@@ -24,7 +23,11 @@ export type MonthSummary = {
   };
 };
 
-export function summarizeMonth(days: ShiftDay[], userId: string | null): MonthSummary {
+export function summarizeMonth(
+  days: ShiftDay[],
+  userId: string | null,
+  members: Member[],
+): MonthSummary {
   const workDays = days.filter((day) => day.garbageType !== "off");
   const totals = new Map<string, MemberSummary>();
 
@@ -88,7 +91,8 @@ export function summarizeMonth(days: ShiftDay[], userId: string | null): MonthSu
     }
   }
 
-  const members = [...totals.values()].filter((item) => findMember(item.memberId));
+  const known = new Set(members.map((member) => member.id));
+  const listed = [...totals.values()].filter((item) => known.has(item.memberId));
 
   return {
     totalSlots,
@@ -97,7 +101,7 @@ export function summarizeMonth(days: ShiftDay[], userId: string | null): MonthSu
     seekingSlots,
     confirmedPay,
     potentialPay,
-    members,
+    members: listed,
     simulation: { extraPay, extraCount, swapCount },
   };
 }
@@ -108,8 +112,13 @@ function csvCell(value: string): string {
 }
 
 /** 表示中の月の部屋ごと報酬。Excelで開けるよう、呼び出し側でBOMを付ける。 */
-export function summaryCsv(year: number, month: number, summary: MonthSummary): string {
-  const rows = MEMBERS.map((member) => {
+export function summaryCsv(
+  year: number,
+  month: number,
+  summary: MonthSummary,
+  members: Member[],
+): string {
+  const rows = members.map((member) => {
     const row = summary.members.find((item) => item.memberId === member.id);
     return [
       member.room,

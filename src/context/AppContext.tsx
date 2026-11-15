@@ -9,7 +9,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { findMember, PASSPHRASE } from "@/lib/members";
+import { membersFrom, PASSPHRASE, profileError } from "@/lib/members";
 import { localShiftStore } from "@/lib/persistence";
 import {
   addMonths,
@@ -34,7 +34,7 @@ import {
   subscribeClock,
   updateStore,
 } from "@/lib/store";
-import type { ActionResult, Member, ShiftDay, ShiftRecord } from "@/lib/types";
+import type { ActionResult, Member, Role, ShiftDay, ShiftRecord } from "@/lib/types";
 
 type ViewMonth = { year: number; month: number };
 
@@ -47,6 +47,10 @@ type HandoverNote = {
 type AppContextValue = {
   ready: boolean;
   currentUser: Member | null;
+  members: Member[];
+  setMemberRole: (memberId: string, role: Role) => ActionResult;
+  addMember: (room: string, name: string) => ActionResult;
+  updateMember: (memberId: string, room: string, name: string) => ActionResult;
   view: ViewMonth;
   today: ViewMonth;
   todayKey: string;
@@ -90,7 +94,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const stored = useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
   const clock = useSyncExternalStore(subscribeClock, getClockSnapshot, getServerClock);
   const ready = !isServerSnapshot(stored) && !isServerClock(clock);
-  const { currentUserId, shifts } = stored;
+  const { currentUserId, roster, roles, shifts } = stored;
   const [pickedMonth, setPickedMonth] = useState<ViewMonth | null>(null);
   const view = useMemo<ViewMonth>(
     () => pickedMonth ?? { year: clock.year, month: clock.month },
@@ -128,7 +132,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo<AppContextValue>(() => {
-    const currentUser = findMember(currentUserId) ?? null;
+    const members = membersFrom(roster, roles);
+    const currentUser = members.find((member) => member.id === currentUserId) ?? null;
+    const memberById = (id: string | null | undefined) =>
+      members.find((member) => member.id === id);
 
     const requireWorkDay = (dateKey: string): ActionResult | null => {
       if (garbageTypeOf(parseDateKey(dateKey)) === "off") {
@@ -140,6 +147,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return {
       ready,
       currentUser,
+      members,
+      setMemberRole(memberId, role) {
+        if (!currentUser?.systemAdmin) {
+          return { ok: false, reason: "役割を変えられるのはシステム管理者です。" };
+        }
+        if (!memberById(memberId)) {
+          return { ok: false, reason: "メンバーが見つかりません。" };
+        }
+        updateStore((current) => ({
+          ...current,
+          roles: { ...current.roles, [memberId]: role },
+        }));
+        return success;
+      },
+      addMember(room, name) {
+        if (!currentUser?.systemAdmin) {
+          return { ok: false, reason: "住人を追加できるのはシステム管理者です。" };
+        }
+        const reason = profileError(room, name, roster);
+        if (reason) return { ok: false, reason };
+        const id = `member-${crypto.randomUUID()}`;
+        updateStore((current) => ({
+          ...current,
+          roster: [
+            ...current.roster,
+            { id, room: room.trim(), name: name.trim(), systemAdmin: false },
+          ],
+          roles: { ...current.roles, [id]: "resident" },
+        }));
+        return success;
+      },
+      updateMember(memberId, room, name) {
+        if (!currentUser?.systemAdmin) {
+          return { ok: false, reason: "住人を編集できるのはシステム管理者です。" };
+        }
+        if (!memberById(memberId)) {
+          return { ok: false, reason: "メンバーが見つかりません。" };
+        }
+        const reason = profileError(room, name, roster, memberId);
+        if (reason) return { ok: false, reason };
+        const roomText = room.trim();
+        const nameText = name.trim();
+        updateStore((current) => ({
+          ...current,
+          roster: current.roster.map((entry) =>
+            entry.id === memberId ? { ...entry, room: roomText, name: nameText } : entry,
+          ),
+        }));
+        return success;
+      },
       view,
       today,
       todayKey: clock.dateKey,
@@ -147,14 +204,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (passphrase.trim() !== PASSPHRASE) {
           return { ok: false, reason: "合言葉が違います。もう一度入力してください。" };
         }
-        if (!findMember(memberId)) {
+        if (!memberById(memberId)) {
           return { ok: false, reason: "メンバーが見つかりません。" };
         }
         updateStore((current) => ({ ...current, currentUserId: memberId }));
         return success;
       },
       switchUser(memberId) {
-        if (!findMember(memberId)) return;
+        if (!memberById(memberId)) return;
         updateStore((current) => ({ ...current, currentUserId: memberId }));
       },
       shiftMonth(delta) {
@@ -177,7 +234,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const shift = dayFrom(toDateKey(previous), shifts);
         if (!shift.handover) return null;
         const names = shift.slots
-          .map((slot) => findMember(slot.assigneeId))
+          .map((slot) => memberById(slot.assigneeId))
           .filter((member) => member !== undefined)
           .map((member) => `${member.room} ${member.name}`)
           .join("、");
@@ -309,7 +366,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return success;
       },
     };
-  }, [clock.dateKey, currentUserId, getShift, ready, replaceShift, shifts, today, view]);
+  }, [clock.dateKey, currentUserId, getShift, ready, replaceShift, roles, roster, shifts, today, view]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

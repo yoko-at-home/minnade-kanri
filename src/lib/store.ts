@@ -1,3 +1,4 @@
+import { DEFAULT_ROLES, DEFAULT_ROSTER, normalizeRoles, normalizeRoster } from "@/lib/members";
 import { localShiftStore } from "@/lib/persistence";
 import { normalizeRecord, toDateKey } from "@/lib/schedule";
 import { seedShifts } from "@/lib/seed";
@@ -39,6 +40,8 @@ export function isServerClock(value: Clock): boolean {
 const SERVER_SNAPSHOT: StoredState = {
   version: 1,
   currentUserId: null,
+  roster: DEFAULT_ROSTER,
+  roles: DEFAULT_ROLES,
   shifts: {},
 };
 
@@ -54,15 +57,27 @@ function normalizeMap(shifts: Record<string, ShiftRecord>): Record<string, Shift
 }
 
 function ensure(): StoredState {
-  if (memory) return memory;
+  if (memory?.roster) return memory;
   const saved = localShiftStore.load();
-  memory = saved
-    ? {
-        version: 1,
-        currentUserId: saved.currentUserId,
-        shifts: normalizeMap(saved.shifts),
-      }
-    : { version: 1, currentUserId: null, shifts: seedShifts() };
+  if (saved) {
+    const roster = normalizeRoster(saved.roster);
+    memory = {
+      version: 1,
+      currentUserId: saved.currentUserId,
+      roster,
+      roles: normalizeRoles(saved.roles, roster),
+      shifts: normalizeMap(saved.shifts),
+    };
+  } else {
+    const roster = DEFAULT_ROSTER.map((entry) => ({ ...entry }));
+    memory = {
+      version: 1,
+      currentUserId: null,
+      roster,
+      roles: normalizeRoles(DEFAULT_ROLES, roster),
+      shifts: seedShifts(),
+    };
+  }
   return memory;
 }
 

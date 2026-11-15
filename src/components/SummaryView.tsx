@@ -2,13 +2,18 @@
 
 import { MonthSwitcher } from "@/components/MonthSwitcher";
 import { useApp } from "@/context/AppContext";
-import { displayName, findMember, MEMBERS, memberLabel } from "@/lib/members";
+import { displayName, memberLabel } from "@/lib/members";
 import { formatYen } from "@/lib/schedule";
 import { summarizeMonth, summaryCsv, summaryCsvFilename, type MonthSummary } from "@/lib/summary";
+import type { Member } from "@/lib/types";
 
 export function SummaryView() {
-  const { currentUser, view, shiftsForMonth } = useApp();
-  const summary = summarizeMonth(shiftsForMonth(view.year, view.month), currentUser?.id ?? null);
+  const { currentUser, members, view, shiftsForMonth } = useApp();
+  const summary = summarizeMonth(
+    shiftsForMonth(view.year, view.month),
+    currentUser?.id ?? null,
+    members,
+  );
   const mine = summary.members.find((item) => item.memberId === currentUser?.id);
   const myPay = mine?.pay ?? 0;
 
@@ -21,7 +26,7 @@ export function SummaryView() {
       <button
         type="button"
         className="min-h-14 rounded-2xl border-2 border-[#1d4e89] bg-white text-lg font-bold text-[#1d4e89]"
-        onClick={() => downloadSummary(view.year, view.month, summary)}
+        onClick={() => downloadSummary(view.year, view.month, summary, members)}
       >
         この月の報酬をCSVでダウンロード
       </button>
@@ -66,14 +71,13 @@ export function SummaryView() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-xl font-bold text-stone-950">部屋ごとの報酬</h2>
-        {MEMBERS.map((member) => {
+        {members.map((member) => {
           const row = summary.members.find((item) => item.memberId === member.id) ?? {
             count: 0,
             specialCount: 0,
             pay: 0,
           };
           const isMe = member.id === currentUser?.id;
-          const person = findMember(member.id);
           return (
             <article
               key={member.id}
@@ -82,7 +86,7 @@ export function SummaryView() {
               }`}
             >
               <h3 className="text-lg font-bold text-stone-950">
-                {person ? displayName(person) : member.name}
+                {displayName(member)}
                 {member.role === "admin" ? "（管理者）" : ""}
                 {isMe ? "（あなた）" : ""}
               </h3>
@@ -99,8 +103,8 @@ export function SummaryView() {
   );
 }
 
-function downloadSummary(year: number, month: number, summary: MonthSummary) {
-  const csv = `\uFEFF${summaryCsv(year, month, summary)}`;
+function downloadSummary(year: number, month: number, summary: MonthSummary, members: Member[]) {
+  const csv = `\uFEFF${summaryCsv(year, month, summary, members)}`;
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

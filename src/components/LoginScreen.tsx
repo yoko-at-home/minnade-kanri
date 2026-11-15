@@ -3,10 +3,10 @@
 import { Building } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { MEMBERS, memberLabel, PASSPHRASE } from "@/lib/members";
+import { memberLabel, PASSPHRASE } from "@/lib/members";
 
 export function LoginScreen() {
-  const { login } = useApp();
+  const { login, members } = useApp();
   const [passphrase, setPassphrase] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState("");
@@ -74,7 +74,7 @@ export function LoginScreen() {
         {unlocked ? (
           <section className="flex flex-col gap-3">
             <h2 className="text-xl font-bold text-stone-950">あなたはどの部屋ですか？</h2>
-            {MEMBERS.map((member) => (
+            {members.map((member) => (
               <button
                 key={member.id}
                 type="button"

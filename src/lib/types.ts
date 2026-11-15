@@ -1,9 +1,15 @@
 export type Role = "resident" | "admin";
 
-export type Member = {
+/** 部屋と名前。役割（管理者かどうか）は別に保存する。 */
+export type MemberProfile = {
   id: string;
   room: string;
   name: string;
+  /** 管理画面を開ける人。住人の追加では付かない。 */
+  systemAdmin: boolean;
+};
+
+export type Member = MemberProfile & {
   role: Role;
 };
 
@@ -36,6 +42,10 @@ export type ShiftDay = ShiftRecord & {
 export type StoredState = {
   version: 1;
   currentUserId: string | null;
+  /** 住人の部屋と名前。未保存のときは初期の4人。 */
+  roster: MemberProfile[];
+  /** メンバーIDごとの役割。無い人は住人として扱う。 */
+  roles: Record<string, Role>;
   shifts: Record<string, ShiftRecord>;
 };
 

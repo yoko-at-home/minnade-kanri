@@ -1,10 +1,10 @@
 "use client";
 
 import { Shield, X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { GarbageBadge } from "@/components/GarbageBadge";
 import { useApp } from "@/context/AppContext";
-import { displayName, findMember, MEMBERS, memberLabel } from "@/lib/members";
+import { displayName, memberLabel } from "@/lib/members";
 import { formatLongDate, GARBAGE_META, parseDateKey, rewardLabel } from "@/lib/schedule";
 import type { ActionResult } from "@/lib/types";
 
@@ -17,6 +17,7 @@ export function ShiftModal({
 }) {
   const app = useApp();
   const day = app.getShift(dateKey);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const date = parseDateKey(dateKey);
   const off = day.garbageType === "off";
@@ -31,17 +32,16 @@ export function ShiftModal({
   const [saved, setSaved] = useState("");
 
   useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = previous;
-      window.removeEventListener("keydown", onKey);
+      if (dialog.open) dialog.close();
     };
-  }, [onClose]);
+  }, []);
 
   function report(result: ActionResult, success: string) {
     if (result.ok) {
@@ -54,17 +54,23 @@ export function ShiftModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-stone-950/50 sm:items-center"
-      onClick={onClose}
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={titleId}
+      className="mt-auto! mr-0! mb-0! ml-0! h-fit max-h-[92dvh] w-full! max-w-none! overflow-y-auto rounded-t-3xl border-0 bg-[#fbf8f3] p-5 text-stone-950 shadow-2xl backdrop:bg-stone-950/50 sm:m-auto! sm:max-w-md! sm:rounded-3xl"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        onClose();
+      }}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-[#fbf8f3] p-5 shadow-2xl sm:rounded-3xl"
-        onClick={(event) => event.stopPropagation()}
-      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id={titleId} className="text-2xl font-bold text-stone-950">
@@ -118,13 +124,14 @@ export function ShiftModal({
             <section className="flex flex-col gap-3">
               <h3 className="text-base font-bold text-stone-700">担当</h3>
               {day.slots.map((slot, index) => {
-                const member = findMember(slot.assigneeId);
+                const slotKey = slot.assigneeId ?? (slot === day.slots[0] ? "first-open" : "second-open");
+                const member = app.members.find((item) => item.id === slot.assigneeId);
                 const isMine = slot.assigneeId === app.currentUser?.id;
                 const canClaim =
                   !day.slots.some((item) => item.assigneeId === app.currentUser?.id) &&
                   (!slot.assigneeId || slot.seekingReplacement);
                 return (
-                  <div key={index} className="rounded-2xl border-2 border-[#e4d9c8] bg-white p-4">
+                  <div key={slotKey} className="rounded-2xl border-2 border-[#e4d9c8] bg-white p-4">
                     <p className="text-base font-bold text-stone-700">
                       {day.capacity === 2 ? `${index + 1}枠目` : "この日の担当"}
                     </p>
@@ -242,7 +249,10 @@ export function ShiftModal({
                   }
                 />
                 {day.slots.map((slot, index) => (
-                  <label key={index} className="text-base font-bold text-stone-900">
+                  <label
+                    key={slot.assigneeId ?? (slot === day.slots[0] ? "first-open" : "second-open")}
+                    className="text-base font-bold text-stone-900"
+                  >
                     {day.capacity === 2 ? `${index + 1}枠目を代わりに決める` : "代わりに担当者を決める"}
                     <select
                       className="mt-1 h-12 w-full rounded-xl border-2 border-stone-300 bg-white px-3 font-medium"
@@ -256,7 +266,7 @@ export function ShiftModal({
                       }}
                     >
                       <option value="">空き枠</option>
-                      {MEMBERS.map((member) => (
+                      {app.members.map((member) => (
                         <option key={member.id} value={member.id}>
                           {memberLabel(member)}
                         </option>
@@ -268,9 +278,7 @@ export function ShiftModal({
             ) : null}
 
             {saved ? (
-              <p className="text-base font-bold text-emerald-900" role="status">
-                {saved}
-              </p>
+              <output className="block text-base font-bold text-emerald-900">{saved}</output>
             ) : null}
             {message ? (
               <p className="text-base font-bold text-red-800" role="alert">
@@ -279,8 +287,7 @@ export function ShiftModal({
             ) : null}
           </div>
         )}
-      </div>
-    </div>
+    </dialog>
   );
 }
 

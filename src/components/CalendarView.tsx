@@ -6,7 +6,7 @@ import { GarbageBadge } from "@/components/GarbageBadge";
 import { MonthSwitcher } from "@/components/MonthSwitcher";
 import { ShiftModal } from "@/components/ShiftModal";
 import { useApp } from "@/context/AppContext";
-import { displayName, findMember } from "@/lib/members";
+import { displayName } from "@/lib/members";
 import {
   formatMonthDay,
   formatYen,
@@ -14,7 +14,7 @@ import {
   parseDateKey,
   rewardOf,
 } from "@/lib/schedule";
-import type { ShiftDay } from "@/lib/types";
+import type { Member, ShiftDay } from "@/lib/types";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
@@ -87,7 +87,7 @@ function filterCaption(onlyMine: boolean, onlyOpen: boolean): string {
 }
 
 export function CalendarView() {
-  const { currentUser, view, todayKey, shiftsForMonth } = useApp();
+  const { currentUser, members, view, todayKey, shiftsForMonth } = useApp();
   const [onlyMine, setOnlyMine] = useState(false);
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -203,6 +203,7 @@ export function CalendarView() {
                 key={day.date}
                 day={day}
                 todayKey={todayKey}
+                members={members}
                 onSelect={() => setSelected(day.date)}
               />
             ))
@@ -232,7 +233,6 @@ function MonthHighlight({
   onSelect: (dateKey: string) => void;
 }) {
   const lead = days.length === 0 ? 0 : parseDateKey(days[0].date).getDay();
-  const cells: (ShiftDay | null)[] = [...Array.from({ length: lead }, () => null), ...days];
   const highlightedCount = days.filter((day) => matchesFilter(day, onlyMine, onlyOpen, userId)).length;
   const mark = highlightMark(onlyMine, onlyOpen);
 
@@ -250,8 +250,10 @@ function MonthHighlight({
             {label}
           </div>
         ))}
-        {cells.map((day, index) => {
-          if (!day) return <div key={`pad-${index}`} aria-hidden />;
+        {WEEKDAYS.slice(0, lead).map((label) => (
+          <div key={`pad-${label}`} aria-hidden />
+        ))}
+        {days.map((day) => {
           const date = parseDateKey(day.date);
           const off = day.garbageType === "off";
           const highlighted = matchesFilter(day, onlyMine, onlyOpen, userId);
@@ -323,10 +325,12 @@ function FilterButton({
 function DayCard({
   day,
   todayKey,
+  members,
   onSelect,
 }: {
   day: ShiftDay;
   todayKey: string;
+  members: Member[];
   onSelect: () => void;
 }) {
   const date = parseDateKey(day.date);
@@ -358,10 +362,13 @@ function DayCard({
         <>
           <span className="flex flex-col gap-1">
             {day.slots.map((slot, index) => {
-              const member = findMember(slot.assigneeId);
+              const member = members.find((item) => item.id === slot.assigneeId);
               const prefix = day.capacity === 2 ? `${index + 1}枠目 ` : "";
               return (
-                <span key={index} className="flex flex-wrap items-center gap-2 text-lg">
+                <span
+                  key={slot.assigneeId ?? (slot === day.slots[0] ? "first-open" : "second-open")}
+                  className="flex flex-wrap items-center gap-2 text-lg"
+                >
                   {member ? (
                     <span className="font-bold text-stone-950">
                       {prefix}
