@@ -59,14 +59,18 @@ function isProfile(value: unknown): value is MemberProfile {
   );
 }
 
-/** 保存済みの名簿を整え、初期の4人が欠けていれば戻す。システム管理者は初期名簿の人だけ。 */
+/** 保存済みの名簿を整える。空のときだけ初期の4人に戻す。システム管理者だけは欠けていれば戻す。 */
 export function normalizeRoster(value: unknown): MemberProfile[] {
   const saved = Array.isArray(value) ? value.filter(isProfile) : [];
-  const byId = new Map<string, MemberProfile>();
+  if (saved.length === 0) return DEFAULT_ROSTER.map((entry) => ({ ...entry }));
+
+  const roster: MemberProfile[] = [];
+  const seen = new Set<string>();
   for (const entry of saved) {
-    if (byId.has(entry.id)) continue;
+    if (seen.has(entry.id)) continue;
+    seen.add(entry.id);
     const fallback = DEFAULT_ROSTER.find((item) => item.id === entry.id);
-    byId.set(entry.id, {
+    roster.push({
       id: entry.id.trim(),
       room: entry.room.trim().slice(0, 10),
       name: entry.name.trim().slice(0, 20),
@@ -74,17 +78,8 @@ export function normalizeRoster(value: unknown): MemberProfile[] {
       ...accountFrom(entry),
     });
   }
-
-  const roster: MemberProfile[] = [];
   for (const entry of DEFAULT_ROSTER) {
-    roster.push(byId.get(entry.id) ?? { ...entry });
-    byId.delete(entry.id);
-  }
-  for (const entry of saved) {
-    const custom = byId.get(entry.id);
-    if (!custom) continue;
-    roster.push(custom);
-    byId.delete(entry.id);
+    if (entry.systemAdmin && !seen.has(entry.id)) roster.unshift({ ...entry });
   }
   return roster;
 }

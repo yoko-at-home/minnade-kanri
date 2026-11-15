@@ -6,7 +6,7 @@ import { accountTypeLabel, displayName } from "@/lib/members";
 import type { AccountType, Member, Role } from "@/lib/types";
 
 export function ManageView() {
-  const { currentUser, members, setMemberRole, addMember, updateMember } = useApp();
+  const { currentUser, members, setMemberRole, addMember, updateMember, removeMember } = useApp();
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [room, setRoom] = useState("");
   const [name, setName] = useState("");
@@ -51,7 +51,7 @@ export function ManageView() {
     <div className="flex flex-col gap-4">
       <h2 className="text-2xl font-bold text-stone-950">住人の管理</h2>
       <p className="text-base leading-relaxed text-stone-700">
-        部屋、名前、振込先の口座を追加・編集できます。管理者にすると、備考、特別手当、募集人数、代わりの担当登録ができます。
+        住人の追加と削除、部屋、名前、振込先の口座を編集できます。管理者にすると、備考、特別手当、募集人数、代わりの担当登録ができます。
       </p>
 
       <form
@@ -232,13 +232,30 @@ export function ManageView() {
                 </div>
               </form>
             ) : (
-              <button
-                type="button"
-                className="mt-3 text-base font-bold text-[#1d4e89] underline"
-                onClick={() => startEdit(member)}
-              >
-                編集
-              </button>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className="text-base font-bold text-[#1d4e89] underline"
+                  onClick={() => startEdit(member)}
+                >
+                  編集
+                </button>
+                {member.systemAdmin ? null : (
+                  <button
+                    type="button"
+                    className="text-base font-bold text-red-800 underline"
+                    onClick={() => {
+                      const agreed = window.confirm(
+                        `${displayName(member)} を削除します。この人の担当は空き枠に戻ります。`,
+                      );
+                      if (!agreed) return;
+                      report(removeMember(member.id), "住人を削除しました");
+                    }}
+                  >
+                    削除
+                  </button>
+                )}
+              </div>
             )}
           </article>
         );

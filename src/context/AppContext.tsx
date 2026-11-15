@@ -51,6 +51,7 @@ type AppContextValue = {
   setMemberRole: (memberId: string, role: Role) => ActionResult;
   addMember: (room: string, name: string) => ActionResult;
   updateMember: (memberId: string, edits: MemberEdits) => ActionResult;
+  removeMember: (memberId: string) => ActionResult;
   view: ViewMonth;
   today: ViewMonth;
   todayKey: string;
@@ -77,6 +78,24 @@ type AppContextValue = {
 
 const AppContext = createContext<AppContextValue | null>(null);
 const success: ActionResult = { ok: true };
+
+function dropAssignees(
+  shifts: Record<string, ShiftRecord>,
+  shouldDrop: (memberId: string) => boolean,
+): Record<string, ShiftRecord> {
+  const next: Record<string, ShiftRecord> = {};
+  for (const [dateKey, record] of Object.entries(shifts)) {
+    next[dateKey] = {
+      ...record,
+      slots: record.slots.map((slot) =>
+        slot.assigneeId && shouldDrop(slot.assigneeId)
+          ? { assigneeId: null, seekingReplacement: false }
+          : slot,
+      ),
+    };
+  }
+  return next;
+}
 
 function dayFrom(dateKey: string, shifts: Record<string, ShiftRecord>): ShiftDay {
   const garbageType = garbageTypeOf(parseDateKey(dateKey));
@@ -220,6 +239,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
         return success;
       },
+      removeMember(memberId) {
+        if (!currentUser?.systemAdmin) {
+          return { ok: false, reason: "住人を削除できるのはシステム管理者です。" };
+        }
+        const member = memberById(memberId);
+        if (!member) return { ok: false, reason: "メンバーが見つかりません。" };
+        if (member.systemAdmin) return { ok: false, reason: "システム管理者は削除できません。" };
+        updateStore((current) => {
+          const roles = { ...current.roles };
+          delete roles[memberId];
+          return {
+            ...current,
+            roster: current.roster.filter((entry) => entry.id !== memberId),
+            roles,
+            shifts: dropAssignees(current.shifts, (id) => id === memberId),
+          };
+        });
+        return success;
+      },
       view,
       today,
       todayKey: clock.dateKey,
@@ -245,7 +283,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setPickedMonth({ year: now.getFullYear(), month: now.getMonth() });
       },
       resetDemo() {
-        updateStore((current) => ({ ...current, shifts: seedShifts() }));
+        updateStore((current) => {
+          const ids = new Set(current.roster.map((entry) => entry.id));
+          return { ...current, shifts: dropAssignees(seedShifts(), (id) => !ids.has(id)) };
+        });
       },
       shiftsForMonth(year, month) {
         return daysInMonth(year, month).map((date) => dayFrom(toDateKey(date), shifts));
