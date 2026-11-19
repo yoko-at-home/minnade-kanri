@@ -30,6 +30,7 @@ export function ShiftModal({
   const [memo, setMemo] = useState(day.handover);
   const [message, setMessage] = useState("");
   const [saved, setSaved] = useState("");
+  const [noteNotice, setNoteNotice] = useState("");
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -51,6 +52,18 @@ export function ShiftModal({
     }
     setSaved("");
     setMessage(result.reason);
+  }
+
+  function saveNote() {
+    const result = app.setNote(dateKey, note);
+    if (!result.ok) {
+      setNoteNotice("");
+      report(result, "");
+      return;
+    }
+    setMessage("");
+    setSaved("");
+    setNoteNotice("備考を保存しました");
   }
 
   return (
@@ -217,14 +230,29 @@ export function ShiftModal({
                 <textarea
                   id="admin-note"
                   value={note}
-                  onChange={(event) => setNote(event.target.value)}
+                  onChange={(event) => {
+                    setNote(event.target.value);
+                    setNoteNotice("");
+                  }}
                   placeholder="例：10:00〜 消火栓点検の立ち会いあり"
                   className="min-h-28 w-full rounded-2xl border-2 border-stone-300 bg-white p-3 text-base leading-relaxed"
                 />
+                {noteNotice ? (
+                  <p
+                    role="status"
+                    className="relative rounded-xl bg-[#d7efe4] px-3 py-2 text-base font-bold text-[#2a5646]"
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute -top-2 left-6 block h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-[#d7efe4]"
+                    />
+                    {noteNotice}
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   className="h-14 rounded-2xl bg-[#dce8f6] text-lg font-bold text-[#3e5878]"
-                  onClick={() => report(app.setNote(dateKey, note), "備考を保存しました")}
+                  onClick={saveNote}
                 >
                   備考を保存
                 </button>
