@@ -9,13 +9,13 @@ export function Header() {
   if (!currentUser) return null;
 
   return (
-    <header className="border-b border-[#e4d9c8] bg-[#fbf8f3] px-4 py-3">
+    <header className="border-b border-[#efe3d4] bg-[#fffaf6] px-4 py-3">
       <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#1f6a45] text-white">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#d7efe4] text-[#2a5646]">
           <Building aria-hidden size={24} />
         </span>
         <div>
-          <p className="text-xl font-bold leading-tight text-stone-950">みんなで管理</p>
+          <p className="text-xl font-bold leading-tight text-stone-950">みんなできれい</p>
           <p className="text-base text-stone-700">
             {currentUser.systemAdmin
               ? "システム管理者として見ています"
@@ -42,7 +42,7 @@ export function Header() {
       </label>
       <button
         type="button"
-        className="mt-2 text-base font-bold text-[#1d4e89] underline decoration-2 underline-offset-4"
+        className="mt-2 text-base font-bold text-[#4a6890] underline decoration-2 underline-offset-4"
         onClick={() => {
           const agreed = window.confirm(
             "サンプルのシフトに戻します。担当やメモの変更は消えます。",

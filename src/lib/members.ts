@@ -12,10 +12,34 @@ const EMPTY_ACCOUNT = {
 };
 
 export const DEFAULT_ROSTER: MemberProfile[] = [
-  { id: "iwasaki", room: "306", name: "岩崎", systemAdmin: true, ...EMPTY_ACCOUNT },
-  { id: "funamoto", room: "309", name: "船本", systemAdmin: false, ...EMPTY_ACCOUNT },
-  { id: "morimoto", room: "20x", name: "▲▲", systemAdmin: false, ...EMPTY_ACCOUNT },
-  { id: "matsuura", room: "505", name: "松浦", systemAdmin: false, ...EMPTY_ACCOUNT },
+  {
+    id: "iwasaki",
+    room: "306",
+    name: "岩崎",
+    systemAdmin: true,
+    ...EMPTY_ACCOUNT,
+  },
+  {
+    id: "funamoto",
+    room: "309",
+    name: "船本",
+    systemAdmin: false,
+    ...EMPTY_ACCOUNT,
+  },
+  {
+    id: "morimoto",
+    room: "20x",
+    name: "▲▲",
+    systemAdmin: false,
+    ...EMPTY_ACCOUNT,
+  },
+  {
+    id: "matsuura",
+    room: "505",
+    name: "松谷",
+    systemAdmin: false,
+    ...EMPTY_ACCOUNT,
+  },
 ];
 
 const DEFAULT_ROLE_BY_ID: Record<string, Role> = {

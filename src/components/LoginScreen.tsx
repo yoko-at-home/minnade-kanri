@@ -22,19 +22,19 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#efe8dc] px-4 py-8">
+    <div className="min-h-dvh bg-[#f7f2ec] px-4 py-8">
       <div className="mx-auto flex w-full max-w-md flex-col gap-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1f6a45] text-white">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d7efe4] text-[#2a5646]">
             <Building aria-hidden size={30} />
           </span>
           <div>
-            <h1 className="text-2xl font-bold text-stone-950">みんなで管理</h1>
+            <h1 className="text-2xl font-bold text-stone-950">みんなできれい</h1>
             <p className="text-base text-stone-700">当番と報酬の試作品</p>
           </div>
         </div>
 
-        <section className="rounded-3xl border border-[#e4d9c8] bg-white p-5">
+        <section className="rounded-3xl border border-[#efe3d4] bg-white p-5">
           <p className="text-lg leading-relaxed text-stone-900">
             ゴミ出しや立ち会いの担当を、住人で分け合うための画面です。まず合言葉を入れて、自分の部屋を選んでください。
           </p>
@@ -58,7 +58,7 @@ export function LoginScreen() {
             />
             <button
               type="submit"
-              className="h-14 rounded-2xl bg-[#1f6a45] text-lg font-bold text-white"
+              className="h-14 rounded-2xl bg-[#d7efe4] text-lg font-bold text-[#2a5646]"
             >
               合言葉を確認する
             </button>
@@ -78,7 +78,7 @@ export function LoginScreen() {
               <button
                 key={member.id}
                 type="button"
-                className="min-h-14 rounded-2xl border-2 border-[#1d4e89] bg-white px-4 py-3 text-left text-lg font-bold text-[#1d4e89]"
+                className="min-h-14 rounded-2xl border-2 border-[#b7cbe4] bg-white px-4 py-3 text-left text-lg font-bold text-[#4a6890]"
                 onClick={() => {
                   const result = login(passphrase, member.id);
                   if (!result.ok) setError(result.reason);

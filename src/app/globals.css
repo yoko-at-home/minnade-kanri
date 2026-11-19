@@ -3,8 +3,8 @@
 
 :root {
   color-scheme: light;
-  --background: #efe8dc;
-  --foreground: #1c1917;
+  --background: #f7f2ec;
+  --foreground: #3f3a36;
 }
 
 body {
@@ -22,6 +22,6 @@ textarea {
 }
 
 :focus-visible {
-  outline: 3px solid #1f6a45;
+  outline: 3px solid #7dbaa4;
   outline-offset: 2px;
 }

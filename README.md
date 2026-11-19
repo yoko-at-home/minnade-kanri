@@ -1,8 +1,8 @@
-# みんなで管理
+# みんなできれい
 
 マンションの自主管理シフトと報酬シェアの試作品です。ゴミ出しや立ち会いの担当を住人で分け、回数に応じた報酬を見ます。
 
-公開サイトは https://minnade-kanri.vercel.app です。画面の見方と操作は [docs/使い方.md](./docs/使い方.md) にまとめています。仕様は [SPEC.md](./SPEC.md) です。
+公開サイトは https://minnade-kirei.vercel.app です。画面の見方と操作は [docs/使い方.md](./docs/使い方.md) にまとめています。仕様は [SPEC.md](./SPEC.md) です。
 
 ## 起動
 

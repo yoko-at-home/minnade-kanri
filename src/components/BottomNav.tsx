@@ -17,7 +17,7 @@ export function BottomNav() {
   const visible = items.filter((item) => !item.systemAdminOnly || currentUser?.systemAdmin);
 
   return (
-    <nav className="sticky bottom-0 z-20 border-t border-[#e4d9c8] bg-white pb-[env(safe-area-inset-bottom)]">
+    <nav className="sticky bottom-0 z-20 border-t border-[#efe3d4] bg-white pb-[env(safe-area-inset-bottom)]">
       <ul className={visible.length > 2 ? "grid grid-cols-3" : "grid grid-cols-2"}>
         {visible.map((item) => {
           const active = pathname === item.href;
@@ -28,7 +28,7 @@ export function BottomNav() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-16 flex-col items-center justify-center gap-1 text-base font-bold ${
-                  active ? "text-[#1f6a45]" : "text-stone-600"
+                  active ? "text-[#3d6b58]" : "text-stone-500"
                 }`}
               >
                 <Icon aria-hidden size={26} strokeWidth={2.25} />

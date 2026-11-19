@@ -26,7 +26,7 @@ export function SummaryView() {
       </p>
       <button
         type="button"
-        className="min-h-14 rounded-2xl border-2 border-[#1d4e89] bg-white text-lg font-bold text-[#1d4e89]"
+        className="min-h-14 rounded-2xl border-2 border-[#b7cbe4] bg-white text-lg font-bold text-[#4a6890]"
         onClick={() => downloadSummary(view.year, view.month, summary, members)}
       >
         この月の報酬をCSVでダウンロード
@@ -39,11 +39,11 @@ export function SummaryView() {
         <Stat label="交代募集" value={`${summary.seekingSlots}枠`} />
       </section>
 
-      <section className="rounded-2xl border border-[#e4d9c8] bg-white p-4">
+      <section className="rounded-2xl border border-[#efe3d4] bg-white p-4">
         <h2 className="text-base font-bold text-stone-700">
           確定した報酬の合計
         </h2>
-        <p className="mt-1 text-3xl font-bold text-[#1d4e89]">
+        <p className="mt-1 text-3xl font-bold text-[#4a6890]">
           {formatYen(summary.confirmedPay)}
         </p>
         <p className="mt-3 text-base leading-relaxed text-stone-800">
@@ -51,7 +51,7 @@ export function SummaryView() {
         </p>
       </section>
 
-      <section className="rounded-3xl bg-[#1f6a45] p-5 text-white">
+      <section className="rounded-3xl bg-[#d7efe4] p-5 text-[#2a5646]">
         <h2 className="text-lg font-bold">
           もし、空いている枠をあなたが担当すると
         </h2>
@@ -70,7 +70,7 @@ export function SummaryView() {
               {formatYen(myPay + summary.simulation.extraPay)} になります。
             </p>
             {summary.simulation.swapCount > 0 ? (
-              <p className="mt-2 text-base leading-relaxed text-emerald-50">
+              <p className="mt-2 text-base leading-relaxed text-[#3d6b58]">
                 うち{summary.simulation.swapCount}
                 回は、交代募集を引き受ける分です。
               </p>
@@ -78,7 +78,7 @@ export function SummaryView() {
           </>
         )}
         {currentUser ? (
-          <p className="mt-3 text-base text-emerald-50">
+          <p className="mt-3 text-base text-[#3d6b58]">
             {memberLabel(currentUser)} として計算
           </p>
         ) : null}
@@ -102,8 +102,8 @@ export function SummaryView() {
               key={member.id}
               className={`rounded-2xl border-2 p-4 ${
                 isMe
-                  ? "border-[#1f6a45] bg-emerald-50"
-                  : "border-[#e4d9c8] bg-white"
+                  ? "border-[#a9d4c2] bg-[#eef8f3]"
+                  : "border-[#efe3d4] bg-white"
               }`}
             >
               <div className="flex items-baseline justify-between gap-2">
@@ -128,13 +128,13 @@ export function SummaryView() {
                 <p className="mt-1 text-base text-stone-800">管理者手当は翌月から付きます。</p>
               ) : null}
               {row.adminAllowance > 0 ? (
-                <p className="mt-1 text-lg font-bold leading-relaxed text-[#1d4e89]">
+                <p className="mt-1 text-lg font-bold leading-relaxed text-[#4a6890]">
                   {`${formatYen(row.pay - row.adminAllowance)} + ${formatYen(
                     row.adminAllowance
                   )} (管理者手当) `}
                 </p>
               ) : (
-                <p className="mt-1 text-lg font-bold text-[#1d4e89]">
+                <p className="mt-1 text-lg font-bold text-[#4a6890]">
                   {formatYen(row.pay)}
                 </p>
               )}
@@ -159,7 +159,7 @@ function downloadSummary(year: number, month: number, summary: MonthSummary, mem
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[#e4d9c8] bg-white px-4 py-3">
+    <div className="rounded-2xl border border-[#efe3d4] bg-white px-4 py-3">
       <p className="text-base text-stone-700">{label}</p>
       <p className="text-2xl font-bold text-stone-950">{value}</p>
     </div>

@@ -10,7 +10,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#efe8dc] px-6">
+      <div className="flex min-h-dvh items-center justify-center bg-[#f7f2ec] px-6">
         <p className="text-lg text-stone-800">読み込み中です</p>
       </div>
     );
@@ -19,8 +19,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (!currentUser) return <LoginScreen />;
 
   return (
-    <div className="min-h-dvh bg-[#efe8dc]">
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-[#fbf8f3] shadow-xl">
+    <div className="min-h-dvh bg-[#f7f2ec]">
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-[#fffaf6] shadow-xl">
         <Header />
         <main className="flex-1 px-4 pb-24 pt-4">{children}</main>
         <BottomNav />

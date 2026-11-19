@@ -3,12 +3,12 @@ import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "みんなで管理",
+  title: "みんなできれい",
   description: "マンション自主管理のシフトと報酬シェア",
-  applicationName: "みんなで管理",
+  applicationName: "みんなできれい",
   appleWebApp: {
     capable: true,
-    title: "みんなで管理",
+    title: "みんなできれい",
     statusBarStyle: "default",
   },
   icons: {
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1f6a45",
+  themeColor: "#d7efe4",
   width: "device-width",
   initialScale: 1,
 };

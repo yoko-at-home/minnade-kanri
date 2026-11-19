@@ -55,7 +55,7 @@ export function ManageView() {
       </p>
 
       <form
-        className="flex flex-col gap-3 rounded-2xl border border-[#e4d9c8] bg-white p-4"
+        className="flex flex-col gap-3 rounded-2xl border border-[#efe3d4] bg-white p-4"
         onSubmit={(event) => {
           event.preventDefault();
           const result = addMember(room, name);
@@ -89,7 +89,7 @@ export function ManageView() {
         />
         <button
           type="submit"
-          className="min-h-14 rounded-2xl bg-[#1f6a45] text-lg font-bold text-white"
+          className="min-h-14 rounded-2xl bg-[#d7efe4] text-lg font-bold text-[#2a5646]"
         >
           追加する
         </button>
@@ -100,7 +100,7 @@ export function ManageView() {
         const isAdmin = member.role === "admin";
         const editing = editingId === member.id;
         return (
-          <article key={member.id} className="rounded-2xl border border-[#e4d9c8] bg-white p-4">
+          <article key={member.id} className="rounded-2xl border border-[#efe3d4] bg-white p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-bold text-stone-950">{displayName(member)}</h3>
@@ -115,7 +115,7 @@ export function ManageView() {
                 className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${
                   isAdmin
                     ? "border border-stone-400 bg-white text-stone-800"
-                    : "bg-[#1d4e89] text-white"
+                    : "bg-[#dce8f6] text-[#3e5878]"
                 }`}
                 onClick={() => changeRole(member.id, isAdmin ? "resident" : "admin")}
               >
@@ -218,7 +218,7 @@ export function ManageView() {
                 <div className="flex gap-2">
                   <button
                     type="submit"
-                    className="min-h-12 flex-1 rounded-2xl bg-[#1f6a45] text-lg font-bold text-white"
+                    className="min-h-12 flex-1 rounded-2xl bg-[#d7efe4] text-lg font-bold text-[#2a5646]"
                   >
                     保存
                   </button>
@@ -235,7 +235,7 @@ export function ManageView() {
               <div className="mt-3 flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  className="text-base font-bold text-[#1d4e89] underline"
+                  className="text-base font-bold text-[#4a6890] underline"
                   onClick={() => startEdit(member)}
                 >
                   編集
@@ -283,7 +283,7 @@ function Status({ message }: { message: { text: string; ok: boolean } | null }) 
   if (!message) return null;
   return (
     <p
-      className={`text-base font-bold ${message.ok ? "text-emerald-900" : "text-red-800"}`}
+      className={`text-base font-bold ${message.ok ? "text-[#2a5646]" : "text-red-800"}`}
       role={message.ok ? "status" : "alert"}
     >
       {message.text}

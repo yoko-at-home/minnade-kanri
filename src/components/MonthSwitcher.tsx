@@ -16,7 +16,7 @@ export function MonthSwitcher() {
       <div className="grid grid-cols-3 gap-2">
         <button
           type="button"
-          className="flex h-12 items-center justify-center gap-1 rounded-2xl border-2 border-stone-300 bg-white text-base font-bold"
+          className="flex h-12 items-center justify-center gap-1 rounded-2xl bg-stone-200 text-base font-bold text-stone-900"
           onClick={() => shiftMonth(-1)}
         >
           <ChevronLeft aria-hidden size={20} />
@@ -26,8 +26,8 @@ export function MonthSwitcher() {
           type="button"
           className={`h-12 rounded-2xl text-base font-bold ${
             showingThisMonth
-              ? "bg-[#1f6a45] text-white"
-              : "border-2 border-[#1f6a45] bg-white text-[#1f6a45]"
+              ? "bg-[#f8d5e2] text-[#7a3d55]"
+              : "bg-white text-stone-950"
           }`}
           onClick={goToThisMonth}
         >
@@ -35,7 +35,7 @@ export function MonthSwitcher() {
         </button>
         <button
           type="button"
-          className="flex h-12 items-center justify-center gap-1 rounded-2xl border-2 border-stone-300 bg-white text-base font-bold"
+          className="flex h-12 items-center justify-center gap-1 rounded-2xl bg-stone-200 text-base font-bold text-stone-900"
           onClick={() => shiftMonth(1)}
         >
           翌月

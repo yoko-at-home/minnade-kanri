@@ -81,37 +81,37 @@ export const GARBAGE_META: Record<
     label: "燃えるゴミ",
     short: "燃える",
     detail: "燃えるごみの日です",
-    badgeClass: "bg-red-100 text-red-950 ring-red-300",
+    badgeClass: "bg-red-100 text-red-950",
   },
   plastic: {
     label: "プラスチックごみ",
     short: "プラ",
     detail: "プラスチックごみの日です",
-    badgeClass: "bg-emerald-100 text-emerald-950 ring-emerald-400",
+    badgeClass: "bg-emerald-100 text-emerald-950",
   },
   pet: {
     label: "ペットボトル",
     short: "ペット",
     detail: "ペットボトルの日です",
-    badgeClass: "bg-sky-100 text-sky-950 ring-sky-300",
+    badgeClass: "bg-sky-100 text-sky-950",
   },
   recycle: {
     label: "リサイクルゴミ",
     short: "リサイクル",
     detail: "紙・缶・ビン・布の日です",
-    badgeClass: "bg-amber-100 text-amber-950 ring-amber-300",
+    badgeClass: "bg-amber-100 text-amber-950",
   },
   nonburnable: {
     label: "燃えないごみ",
     short: "不燃",
     detail: "燃えないごみの日です",
-    badgeClass: "bg-violet-100 text-violet-950 ring-violet-300",
+    badgeClass: "bg-violet-100 text-violet-950",
   },
   off: {
     label: "お休み",
     short: "お休み",
     detail: "日曜・月曜はシフトがありません",
-    badgeClass: "bg-stone-200 text-stone-700 ring-stone-300",
+    badgeClass: "bg-stone-200 text-stone-700",
   },
 };
 

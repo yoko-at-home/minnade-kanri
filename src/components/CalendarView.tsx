@@ -41,12 +41,12 @@ function cardClass(day: ShiftDay, todayKey: string): string {
   const today = day.date === todayKey;
   if (day.garbageType === "off") return `${base} border-stone-200 bg-stone-100`;
   if (slotIsOpen(day)) {
-    return `${base} border-[#1f6a45] bg-emerald-50 ${
-      today ? "ring-2 ring-[#1f6a45]" : ""
+    return `${base} border-[#a9d4c2] bg-[#eef8f3] ${
+      today ? "ring-2 ring-[#8fbfa8]" : ""
     }`;
   }
-  return `${base} border-[#e4d9c8] bg-white ${
-    today ? "ring-2 ring-[#1f6a45]" : ""
+  return `${base} border-[#efe3d4] bg-white ${
+    today ? "ring-2 ring-[#8fbfa8]" : ""
   }`;
 }
 
@@ -218,7 +218,7 @@ export function CalendarView() {
           <nav
             ref={weekNavRef}
             aria-label="週"
-            className="sticky top-0 z-10 -mx-4 bg-[#fbf8f3] px-4 py-2"
+            className="sticky top-0 z-10 -mx-4 bg-[#fffaf6] px-4 py-2"
           >
             <div
               className={`grid gap-1 ${weeks.length > 5 ? "grid-cols-3" : ""}`}
@@ -232,7 +232,6 @@ export function CalendarView() {
             >
               {weeks.map((week, index) => {
                 const active = week.id === activeWeekId;
-                const hasToday = week.days.some((day) => day.date === todayKey);
                 return (
                   <a
                     key={week.id}
@@ -247,12 +246,10 @@ export function CalendarView() {
                           block: "start",
                         });
                     }}
-                    className={`flex min-h-12 items-center justify-center rounded-xl px-0.5 text-base font-bold whitespace-nowrap ${
+                    className={`flex min-h-12 items-center justify-center rounded-t-xl rounded-b-none px-0.5 text-base font-bold whitespace-nowrap ${
                       active
-                        ? "bg-[#1d4e89] text-white"
-                        : hasToday
-                        ? "border-2 border-[#1f6a45] bg-white text-[#1f6a45]"
-                        : "border-2 border-stone-300 bg-white text-stone-900"
+                        ? "bg-[#f8d5e2] text-[#7a3d55]"
+                        : "bg-stone-200 text-stone-900"
                     }`}
                   >
                     {index + 1}週目
@@ -352,13 +349,13 @@ function MonthHighlight({
                 off
                   ? "bg-stone-100 text-stone-400"
                   : highlighted
-                    ? `bg-[#1f6a45] font-bold text-white ${today ? "ring-2 ring-amber-300" : ""}`
-                    : `border border-[#e4d9c8] bg-white text-stone-500 ${
-                        today ? "ring-2 ring-[#1f6a45]" : ""
+                    ? `bg-[#d7efe4] font-bold text-[#2a5646] ${today ? "ring-2 ring-[#8fbfa8]" : ""}`
+                    : `border border-[#efe3d4] bg-white text-stone-800 ${
+                        today ? "ring-2 ring-[#8fbfa8]" : ""
                       }`
               }`}
             >
-              <span className={`text-lg leading-none ${highlighted ? "text-white" : ""}`}>
+              <span className="text-lg leading-none">
                 {date.getDate()}
               </span>
               {highlighted ? (
@@ -394,7 +391,7 @@ function FilterButton({
       aria-pressed={pressed}
       onClick={onClick}
       className={`min-h-12 rounded-2xl px-4 text-base font-bold ${
-        pressed ? "bg-[#1d4e89] text-white" : "border-2 border-stone-300 bg-white text-stone-900"
+        pressed ? "bg-[#9ebbe8] text-[#243e62]" : "bg-[#9ed4b8] text-[#1e4a38]"
       }`}
     >
       {children}
@@ -427,7 +424,7 @@ function DayCard({
             {WEEKDAYS[date.getDay()]}
           </span>
           {day.date === todayKey ? (
-            <span className="rounded-full bg-[#1f6a45] px-2 py-0.5 text-base font-bold text-white">
+            <span className="rounded-full bg-[#d7efe4] px-2 py-0.5 text-base font-bold text-[#2a5646]">
               今日
             </span>
           ) : null}
@@ -455,7 +452,7 @@ function DayCard({
                       {displayName(member)}
                     </span>
                   ) : (
-                    <span className="font-bold text-emerald-900">{prefix}空き枠（募集中）</span>
+                    <span className="font-bold text-[#3d6b58]">{prefix}空き枠（募集中）</span>
                   )}
                   {slot.seekingReplacement ? (
                     <span className="rounded-full bg-orange-600 px-2 py-0.5 text-base font-bold text-white">
@@ -467,7 +464,7 @@ function DayCard({
             })}
           </span>
           <span className="flex flex-wrap items-center gap-2 text-base">
-            <span className="font-bold text-[#1d4e89]">{formatYen(rewardOf(day.specialAllowance))}</span>
+            <span className="font-bold text-[#4a6890]">{formatYen(rewardOf(day.specialAllowance))}</span>
             {day.specialAllowance ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 font-bold text-amber-950">
                 <JapaneseYen aria-hidden size={18} />

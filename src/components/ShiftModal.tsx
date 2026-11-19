@@ -57,7 +57,7 @@ export function ShiftModal({
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
-      className="mt-auto! mr-0! mb-0! ml-0! h-fit max-h-[92dvh] w-full! max-w-none! overflow-y-auto rounded-t-3xl border-0 bg-[#fbf8f3] p-5 text-stone-950 shadow-2xl backdrop:bg-stone-950/50 sm:m-auto! sm:max-w-md! sm:rounded-3xl"
+      className="mt-auto! mr-0! mb-0! ml-0! h-fit max-h-[92dvh] w-full! max-w-none! overflow-y-auto rounded-t-3xl border-0 bg-[#fffaf6] p-5 text-stone-950 shadow-2xl backdrop:bg-stone-950/50 sm:m-auto! sm:max-w-md! sm:rounded-3xl"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -96,7 +96,7 @@ export function ShiftModal({
           <div className="mt-5 flex flex-col gap-5">
             <div className="flex flex-wrap items-center gap-2">
               <GarbageBadge type={day.garbageType} />
-              <p className="text-lg font-bold text-[#1d4e89]">{rewardLabel(day.specialAllowance)}</p>
+              <p className="text-lg font-bold text-[#4a6890]">{rewardLabel(day.specialAllowance)}</p>
             </div>
 
             <section className="rounded-2xl bg-white p-4">
@@ -131,7 +131,7 @@ export function ShiftModal({
                   !day.slots.some((item) => item.assigneeId === app.currentUser?.id) &&
                   (!slot.assigneeId || slot.seekingReplacement);
                 return (
-                  <div key={slotKey} className="rounded-2xl border-2 border-[#e4d9c8] bg-white p-4">
+                  <div key={slotKey} className="rounded-2xl border-2 border-[#efe3d4] bg-white p-4">
                     <p className="text-base font-bold text-stone-700">
                       {day.capacity === 2 ? `${index + 1}枠目` : "この日の担当"}
                     </p>
@@ -146,7 +146,7 @@ export function ShiftModal({
                     {canClaim ? (
                       <button
                         type="button"
-                        className="mt-3 h-14 w-full rounded-2xl bg-[#1f6a45] text-lg font-bold text-white"
+                        className="mt-3 h-14 w-full rounded-2xl bg-[#d7efe4] text-lg font-bold text-[#2a5646]"
                         onClick={() =>
                           report(
                             app.claim(dateKey, index),
@@ -197,7 +197,7 @@ export function ShiftModal({
                 />
                 <button
                   type="button"
-                  className="mt-3 h-14 w-full rounded-2xl bg-[#1d4e89] text-lg font-bold text-white"
+                  className="mt-3 h-14 w-full rounded-2xl bg-[#dce8f6] text-lg font-bold text-[#3e5878]"
                   onClick={() => report(app.setHandover(dateKey, memo), "申し送りを保存しました")}
                 >
                   申し送りを保存
@@ -206,8 +206,8 @@ export function ShiftModal({
             ) : null}
 
             {isAdmin ? (
-              <section className="flex flex-col gap-3 rounded-2xl border-2 border-[#1d4e89] bg-sky-50 p-4">
-                <h3 className="flex items-center gap-2 text-lg font-bold text-[#1d4e89]">
+              <section className="flex flex-col gap-3 rounded-2xl border-2 border-[#b7cbe4] bg-[#f3f7fc] p-4">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-[#4a6890]">
                   <Shield aria-hidden size={22} />
                   管理者の操作
                 </h3>
@@ -223,7 +223,7 @@ export function ShiftModal({
                 />
                 <button
                   type="button"
-                  className="h-14 rounded-2xl bg-[#1d4e89] text-lg font-bold text-white"
+                  className="h-14 rounded-2xl bg-[#dce8f6] text-lg font-bold text-[#3e5878]"
                   onClick={() => report(app.setNote(dateKey, note), "備考を保存しました")}
                 >
                   備考を保存
@@ -278,7 +278,7 @@ export function ShiftModal({
             ) : null}
 
             {saved ? (
-              <output className="block text-base font-bold text-emerald-900">{saved}</output>
+              <output className="block text-base font-bold text-[#2a5646]">{saved}</output>
             ) : null}
             {message ? (
               <p className="text-base font-bold text-red-800" role="alert">
@@ -310,10 +310,10 @@ function SwitchRow({
     >
       <span className="text-base font-bold text-stone-950">{label}</span>
       <span
-        className={`relative h-8 w-14 shrink-0 rounded-full ${pressed ? "bg-[#1f6a45]" : "bg-stone-300"}`}
+        className={`relative h-8 w-14 shrink-0 rounded-full ${pressed ? "bg-[#cfe8dc]" : "bg-stone-200"}`}
       >
         <span
-          className={`absolute top-1 h-6 w-6 rounded-full bg-white ${pressed ? "left-7" : "left-1"}`}
+          className={`absolute top-1 h-6 w-6 rounded-full ${pressed ? "left-7 bg-[#2a5646]" : "left-1 bg-white"}`}
         />
       </span>
     </button>
