@@ -24,7 +24,6 @@ assert.equal(garbageTypeOf(on(2026, 11, 6)), "pet");
 assert.equal(garbageTypeOf(on(2026, 11, 7)), "burnable");
 assert.equal(toDateKey(previousWorkDay(on(2026, 11, 5))!), "2026-11-04");
 assert.equal(toDateKey(previousWorkDay(on(2026, 11, 10))!), "2026-11-07");
-assert.equal(rewardOf(false), 5000);
-assert.equal(rewardOf(true), 6000);
+assert.equal(rewardOf(), 5000);
 
 console.log("schedule checks passed");

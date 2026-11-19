@@ -51,7 +51,7 @@ export function ManageView() {
     <div className="flex flex-col gap-4">
       <h2 className="text-2xl font-bold text-stone-950">住人の管理</h2>
       <p className="text-base leading-relaxed text-stone-700">
-        住人の追加と削除、部屋、名前、振込先の口座を編集できます。管理者にすると、備考、特別手当、募集人数、代わりの担当登録ができます。管理者手当の1万円は、変えた翌月から付きます。
+        住人の追加と削除、部屋、名前、振込先の口座を編集できます。管理者は2人までです。管理者にすると、備考、募集人数、代わりの担当登録ができます。管理者手当の5,000円は、ひとりずつ、変えた翌月から付きます。
       </p>
 
       <form
@@ -104,23 +104,32 @@ export function ManageView() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-bold text-stone-950">{displayName(member)}</h3>
-                <p className="mt-1 text-base text-stone-700">{isAdmin ? "管理者" : "住人"}</p>
+                <p className="mt-1 text-base text-stone-700">
+                  {member.office ? "管理会社" : isAdmin ? "管理者" : "住人"}
+                </p>
                 {member.systemAdmin ? (
                   <p className="mt-1 text-base text-stone-700">システム管理者です。この画面を使えます。</p>
                 ) : null}
+                {member.office ? (
+                  <p className="mt-1 text-base text-stone-700">
+                    報酬のCSVを保存するだけです。担当には入りません。
+                  </p>
+                ) : null}
                 <AccountLine member={member} />
               </div>
-              <button
-                type="button"
-                className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${
-                  isAdmin
-                    ? "border border-stone-400 bg-white text-stone-800"
-                    : "bg-[#dce8f6] text-[#3e5878]"
-                }`}
-                onClick={() => changeRole(member.id, isAdmin ? "resident" : "admin")}
-              >
-                {isAdmin ? "住人に戻す" : "管理者にする"}
-              </button>
+              {member.office ? null : (
+                <button
+                  type="button"
+                  className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${
+                    isAdmin
+                      ? "border border-stone-400 bg-white text-stone-800"
+                      : "bg-[#dce8f6] text-[#3e5878]"
+                  }`}
+                  onClick={() => changeRole(member.id, isAdmin ? "resident" : "admin")}
+                >
+                  {isAdmin ? "住人に戻す" : "管理者にする"}
+                </button>
+              )}
             </div>
             {editing ? (
               <form
@@ -231,7 +240,7 @@ export function ManageView() {
                   </button>
                 </div>
               </form>
-            ) : (
+            ) : member.office ? null : (
               <div className="mt-3 flex items-center justify-between gap-3">
                 <button
                   type="button"

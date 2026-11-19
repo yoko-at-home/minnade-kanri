@@ -9,7 +9,10 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { buildConfirmedMonth, findConfirmedMonth, monthHasEnded } from "@/lib/confirmed";
 import {
+  ADMIN_LIMIT,
+  allowanceIdsForMonth,
   dropAllowanceMember,
   membersFrom,
   PASSPHRASE,
@@ -41,7 +44,15 @@ import {
   subscribeClock,
   updateStore,
 } from "@/lib/store";
-import type { ActionResult, AllowanceTerm, Member, Role, ShiftDay, ShiftRecord } from "@/lib/types";
+import type {
+  ActionResult,
+  AllowanceTerm,
+  ConfirmedMonth,
+  Member,
+  Role,
+  ShiftDay,
+  ShiftRecord,
+} from "@/lib/types";
 
 type ViewMonth = { year: number; month: number };
 
@@ -60,6 +71,9 @@ type AppContextValue = {
   updateMember: (memberId: string, edits: MemberEdits) => ActionResult;
   removeMember: (memberId: string) => ActionResult;
   allowanceSchedule: AllowanceTerm[];
+  confirmedMonths: ConfirmedMonth[];
+  confirmMonth: (year: number, month: number) => ActionResult;
+  isMonthConfirmed: (year: number, month: number) => boolean;
   view: ViewMonth;
   today: ViewMonth;
   todayKey: string;
@@ -75,7 +89,6 @@ type AppContextValue = {
   toggleReplacement: (dateKey: string, slotIndex: number) => ActionResult;
   setHandover: (dateKey: string, text: string) => ActionResult;
   setNote: (dateKey: string, text: string) => ActionResult;
-  setSpecial: (dateKey: string, enabled: boolean) => ActionResult;
   setCapacity: (dateKey: string, capacity: 1 | 2) => ActionResult;
   assign: (
     dateKey: string,
@@ -90,9 +103,15 @@ const success: ActionResult = { ok: true };
 function dropAssignees(
   shifts: Record<string, ShiftRecord>,
   shouldDrop: (memberId: string) => boolean,
+  confirmedMonths: readonly ConfirmedMonth[],
 ): Record<string, ShiftRecord> {
   const next: Record<string, ShiftRecord> = {};
   for (const [dateKey, record] of Object.entries(shifts)) {
+    const date = parseDateKey(dateKey);
+    if (findConfirmedMonth(confirmedMonths, date.getFullYear(), date.getMonth())) {
+      next[dateKey] = record;
+      continue;
+    }
     next[dateKey] = {
       ...record,
       slots: record.slots.map((slot) =>
@@ -121,7 +140,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const stored = useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
   const clock = useSyncExternalStore(subscribeClock, getClockSnapshot, getServerClock);
   const ready = !isServerSnapshot(stored) && !isServerClock(clock);
-  const { currentUserId, roster, roles, shifts, allowanceSchedule } = stored;
+  const { currentUserId, roster, roles, shifts, allowanceSchedule, confirmedMonths } = stored;
   const [pickedMonth, setPickedMonth] = useState<ViewMonth | null>(null);
   const view = useMemo<ViewMonth>(
     () => pickedMonth ?? { year: clock.year, month: clock.month },
@@ -170,18 +189,73 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return null;
     };
+    const requireOpenMonth = (dateKey: string): ActionResult | null => {
+      const date = parseDateKey(dateKey);
+      if (findConfirmedMonth(confirmedMonths, date.getFullYear(), date.getMonth())) {
+        return { ok: false, reason: "この月の報酬は確定済みです。担当は変更できません。" };
+      }
+      return null;
+    };
 
     return {
       ready,
       currentUser,
       members,
       allowanceSchedule,
+      confirmedMonths,
+      confirmMonth(year, month) {
+        if (currentUser?.role !== "admin" && !currentUser?.systemAdmin) {
+          return { ok: false, reason: "報酬を確定できるのは管理者です。" };
+        }
+        if (!monthHasEnded(year, month, clock.year, clock.month)) {
+          return { ok: false, reason: "この月が終わってから確定できます。" };
+        }
+        if (findConfirmedMonth(confirmedMonths, year, month)) {
+          return { ok: false, reason: "この月の報酬は、すでに確定しています。" };
+        }
+        const days = daysInMonth(year, month).map((date) => dayFrom(toDateKey(date), shifts));
+        const snapshot = buildConfirmedMonth(
+          year,
+          month,
+          clock.dateKey,
+          days,
+          members.filter((member) => !member.office),
+          allowanceIdsForMonth(allowanceSchedule, year, month),
+        );
+        updateStore((current) => ({
+          ...current,
+          confirmedMonths: [
+            ...current.confirmedMonths.filter((item) => item.year !== year || item.month !== month),
+            snapshot,
+          ],
+        }));
+        return success;
+      },
+      isMonthConfirmed(year, month) {
+        return Boolean(findConfirmedMonth(confirmedMonths, year, month));
+      },
       setMemberRole(memberId, role) {
         if (!currentUser?.systemAdmin) {
           return { ok: false, reason: "役割を変えられるのはシステム管理者です。" };
         }
-        if (!memberById(memberId)) {
+        const target = memberById(memberId);
+        if (!target) {
           return { ok: false, reason: "メンバーが見つかりません。" };
+        }
+        if (target.office) {
+          return { ok: false, reason: "管理会社の担当は、管理者にできません。" };
+        }
+        if (role === "admin") {
+          const adminCount = members.filter((member) => member.role === "admin").length;
+          const alreadyAdmin = members.some(
+            (member) => member.id === memberId && member.role === "admin",
+          );
+          if (!alreadyAdmin && adminCount >= ADMIN_LIMIT) {
+            return {
+              ok: false,
+              reason: "管理者は2人までです。先にどちらかを住人に戻してください。",
+            };
+          }
         }
         updateStore((current) => {
           const nextRoles = { ...current.roles, [memberId]: role };
@@ -220,6 +294,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               room: room.trim(),
               name: name.trim(),
               systemAdmin: false,
+              office: false,
               bankName: "",
               branchName: "",
               accountType: "",
@@ -267,6 +342,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const member = memberById(memberId);
         if (!member) return { ok: false, reason: "メンバーが見つかりません。" };
         if (member.systemAdmin) return { ok: false, reason: "システム管理者は削除できません。" };
+        if (member.office) return { ok: false, reason: "管理会社の担当は削除できません。" };
         updateStore((current) => {
           const roles = { ...current.roles };
           delete roles[memberId];
@@ -275,7 +351,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             roster: current.roster.filter((entry) => entry.id !== memberId),
             roles,
             allowanceSchedule: dropAllowanceMember(current.allowanceSchedule, memberId),
-            shifts: dropAssignees(current.shifts, (id) => id === memberId),
+            shifts: dropAssignees(
+              current.shifts,
+              (id) => id === memberId,
+              current.confirmedMonths,
+            ),
           };
         });
         return success;
@@ -307,7 +387,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       resetDemo() {
         updateStore((current) => {
           const ids = new Set(current.roster.map((entry) => entry.id));
-          return { ...current, shifts: dropAssignees(seedShifts(), (id) => !ids.has(id)) };
+          const seeded = dropAssignees(seedShifts(), (id) => !ids.has(id), current.confirmedMonths);
+          for (const [dateKey, record] of Object.entries(current.shifts)) {
+            const date = parseDateKey(dateKey);
+            if (findConfirmedMonth(current.confirmedMonths, date.getFullYear(), date.getMonth())) {
+              seeded[dateKey] = record;
+            }
+          }
+          return { ...current, shifts: seeded };
         });
       },
       shiftsForMonth(year, month) {
@@ -327,9 +414,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { label: formatLongDate(previous), text: shift.handover, names };
       },
       claim(dateKey, slotIndex) {
-        const blocked = requireWorkDay(dateKey);
+        const blocked = requireWorkDay(dateKey) ?? requireOpenMonth(dateKey);
         if (blocked) return blocked;
         if (!currentUser) return { ok: false, reason: "先に本人を選んでください。" };
+        if (currentUser.office) {
+          return { ok: false, reason: "管理会社の担当は、担当に入れません。" };
+        }
         const day = dayFrom(dateKey, shifts);
         if (day.slots.some((slot) => slot.assigneeId === currentUser.id)) {
           return { ok: false, reason: "この日は、すでに担当に入っています。" };
@@ -349,7 +439,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return success;
       },
       toggleReplacement(dateKey, slotIndex) {
-        const blocked = requireWorkDay(dateKey);
+        const blocked = requireWorkDay(dateKey) ?? requireOpenMonth(dateKey);
         if (blocked) return blocked;
         if (!currentUser) return { ok: false, reason: "先に本人を選んでください。" };
         const slot = dayFrom(dateKey, shifts).slots[slotIndex];
@@ -367,7 +457,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return success;
       },
       setHandover(dateKey, text) {
-        const blocked = requireWorkDay(dateKey);
+        const blocked = requireWorkDay(dateKey) ?? requireOpenMonth(dateKey);
         if (blocked) return blocked;
         if (!currentUser) return { ok: false, reason: "先に本人を選んでください。" };
         const mine = dayFrom(dateKey, shifts).slots.some(
@@ -380,7 +470,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return success;
       },
       setNote(dateKey, text) {
-        const blocked = requireWorkDay(dateKey);
+        const blocked = requireWorkDay(dateKey) ?? requireOpenMonth(dateKey);
         if (blocked) return blocked;
         if (currentUser?.role !== "admin") {
           return { ok: false, reason: "備考を直せるのは管理者です。" };
@@ -388,17 +478,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         replaceShift(dateKey, (record) => ({ ...record, note: text.trim() }));
         return success;
       },
-      setSpecial(dateKey, enabled) {
-        const blocked = requireWorkDay(dateKey);
-        if (blocked) return blocked;
-        if (currentUser?.role !== "admin") {
-          return { ok: false, reason: "特別手当を切り替えられるのは管理者です。" };
-        }
-        replaceShift(dateKey, (record) => ({ ...record, specialAllowance: enabled }));
-        return success;
-      },
       setCapacity(dateKey, capacity) {
-        const blocked = requireWorkDay(dateKey);
+        const blocked = requireWorkDay(dateKey) ?? requireOpenMonth(dateKey);
         if (blocked) return blocked;
         if (currentUser?.role !== "admin") {
           return { ok: false, reason: "人数を変えられるのは管理者です。" };
@@ -430,13 +511,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return success;
       },
       assign(dateKey, slotIndex, memberId) {
-        const blocked = requireWorkDay(dateKey);
+        const blocked = requireWorkDay(dateKey) ?? requireOpenMonth(dateKey);
         if (blocked) return blocked;
         if (currentUser?.role !== "admin") {
           return { ok: false, reason: "代理で入れられるのは管理者です。" };
         }
         const day = dayFrom(dateKey, shifts);
         if (!day.slots[slotIndex]) return { ok: false, reason: "その枠はありません。" };
+        if (memberId && memberById(memberId)?.office) {
+          return { ok: false, reason: "管理会社の担当は、担当に入れません。" };
+        }
         if (
           memberId &&
           day.slots.some((slot, index) => index !== slotIndex && slot.assigneeId === memberId)
@@ -454,6 +538,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [
     allowanceSchedule,
+    confirmedMonths,
     clock.dateKey,
     clock.month,
     clock.year,

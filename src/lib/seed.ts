@@ -41,7 +41,6 @@ function seedCurrentMonth(shifts: Record<string, ShiftRecord>, days: Date[]) {
     shifts,
     nthWeekday(days, 2, 1),
     assigned("iwasaki", {
-      specialAllowance: true,
       note: "10:00〜 消火栓点検の立ち会いあり",
     }),
   );
@@ -51,7 +50,6 @@ function seedCurrentMonth(shifts: Record<string, ShiftRecord>, days: Date[]) {
   });
   put(shifts, nthWeekday(days, 3, 2), {
     capacity: 2,
-    specialAllowance: true,
     note: "台風翌日のため、外回りを2名でお願いします",
     handover: "",
     slots: [
@@ -66,12 +64,10 @@ function seedNextMonth(shifts: Record<string, ShiftRecord>, days: Date[]) {
   put(shifts, nthWeekday(days, 5, 0), assigned("matsuura"));
   put(shifts, nthWeekday(days, 2, 2), {
     ...defaultRecord(),
-    specialAllowance: true,
     note: "植栽の伐採立ち会い（午前）",
   });
   put(shifts, nthWeekday(days, 6, 1), {
     capacity: 2,
-    specialAllowance: false,
     note: "大掃除のため2名募集",
     handover: "",
     slots: [

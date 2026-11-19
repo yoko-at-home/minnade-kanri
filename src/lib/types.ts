@@ -10,6 +10,8 @@ export type MemberProfile = {
   name: string;
   /** 管理画面を開ける人。住人の追加では付かない。 */
   systemAdmin: boolean;
+  /** 管理会社の担当。CSVのダウンロードだけができ、担当には入らない。 */
+  office: boolean;
   bankName: string;
   branchName: string;
   accountType: AccountType;
@@ -36,7 +38,6 @@ export type ShiftSlot = {
 
 export type ShiftRecord = {
   capacity: 1 | 2;
-  specialAllowance: boolean;
   note: string;
   handover: string;
   slots: ShiftSlot[];
@@ -54,15 +55,47 @@ export type AllowanceTerm = {
   memberIds: string[];
 };
 
+/** 報酬確定の時点の、部屋ごとの金額と振込先。 */
+export type ConfirmedRewardRow = {
+  memberId: string;
+  room: string;
+  name: string;
+  count: number;
+  adminAllowance: number;
+  pay: number;
+  bankName: string;
+  branchName: string;
+  accountType: AccountType;
+  accountNumber: string;
+  accountHolder: string;
+  adminAtConfirm: boolean;
+};
+
+/** 月末に確定した月。担当と報酬は、この記録をあとから変えない。 */
+export type ConfirmedMonth = {
+  year: number;
+  month: number;
+  confirmedOn: string;
+  rows: ConfirmedRewardRow[];
+  totalSlots: number;
+  filledSlots: number;
+  openSlots: number;
+  seekingSlots: number;
+  confirmedPay: number;
+  potentialPay: number;
+};
+
 export type StoredState = {
   version: 1;
   currentUserId: string | null;
-  /** 住人の部屋と名前。未保存のときは初期の4人。 */
+  /** 住人の部屋と名前。未保存のときは初期の住人と管理会社。 */
   roster: MemberProfile[];
   /** メンバーIDごとの役割。無い人は住人として扱う。 */
   roles: Record<string, Role>;
   /** 管理者手当の対象。未保存のときは、今の管理者を最初からとして扱う。 */
   allowanceSchedule: AllowanceTerm[];
+  /** 報酬を確定した月。未保存のときは、まだ確定していない。 */
+  confirmedMonths: ConfirmedMonth[];
   shifts: Record<string, ShiftRecord>;
 };
 

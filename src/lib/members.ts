@@ -17,6 +17,7 @@ export const DEFAULT_ROSTER: MemberProfile[] = [
     room: "306",
     name: "岩崎",
     systemAdmin: true,
+    office: false,
     ...EMPTY_ACCOUNT,
   },
   {
@@ -24,6 +25,7 @@ export const DEFAULT_ROSTER: MemberProfile[] = [
     room: "309",
     name: "船本",
     systemAdmin: false,
+    office: false,
     ...EMPTY_ACCOUNT,
   },
   {
@@ -31,6 +33,7 @@ export const DEFAULT_ROSTER: MemberProfile[] = [
     room: "20x",
     name: "▲▲",
     systemAdmin: false,
+    office: false,
     ...EMPTY_ACCOUNT,
   },
   {
@@ -38,9 +41,21 @@ export const DEFAULT_ROSTER: MemberProfile[] = [
     room: "505",
     name: "松谷",
     systemAdmin: false,
+    office: false,
+    ...EMPTY_ACCOUNT,
+  },
+  {
+    id: "office",
+    room: "管理会社",
+    name: "担当",
+    systemAdmin: false,
+    office: true,
     ...EMPTY_ACCOUNT,
   },
 ];
+
+/** 日付を直せる管理者の人数。システム管理者はこの数に入らない。 */
+export const ADMIN_LIMIT = 2;
 
 const DEFAULT_ROLE_BY_ID: Record<string, Role> = {
   iwasaki: "resident",
@@ -84,7 +99,7 @@ function isProfile(value: unknown): value is MemberProfile {
   );
 }
 
-/** 保存済みの名簿を整える。空のときだけ初期の4人に戻す。システム管理者だけは欠けていれば戻す。 */
+/** 保存済みの名簿を整える。空のときだけ初期の名簿に戻す。システム管理者と管理会社は欠けていれば戻す。 */
 export function normalizeRoster(value: unknown): MemberProfile[] {
   const saved = Array.isArray(value) ? value.filter(isProfile) : [];
   if (saved.length === 0) return DEFAULT_ROSTER.map((entry) => ({ ...entry }));
@@ -100,11 +115,15 @@ export function normalizeRoster(value: unknown): MemberProfile[] {
       room: entry.room.trim().slice(0, 10),
       name: entry.name.trim().slice(0, 20),
       systemAdmin: fallback?.systemAdmin ?? false,
+      office: fallback?.office ?? false,
       ...accountFrom(entry),
     });
   }
   for (const entry of DEFAULT_ROSTER) {
-    if (entry.systemAdmin && !seen.has(entry.id)) roster.unshift({ ...entry });
+    if (!entry.systemAdmin && !entry.office) continue;
+    if (seen.has(entry.id)) continue;
+    if (entry.systemAdmin) roster.unshift({ ...entry });
+    else roster.push({ ...entry });
   }
   return roster;
 }
@@ -262,11 +281,13 @@ export function accountHint(member: Pick<Member, "bankName" | "accountNumber">):
   return [member.bankName, number].filter(Boolean).join(" ");
 }
 
-export function displayName(member: Pick<Member, "room" | "name">): string {
+export function displayName(member: Pick<Member, "room" | "name"> & { office?: boolean }): string {
+  if (member.office) return "管理会社";
   return `${member.room} ${member.name}`;
 }
 
 export function memberLabel(member: Member): string {
+  if (member.office) return "管理会社";
   const marks: string[] = [];
   if (member.systemAdmin) marks.push("システム管理者");
   if (member.role === "admin") marks.push("管理者");

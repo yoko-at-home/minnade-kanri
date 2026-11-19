@@ -17,11 +17,13 @@ export function Header() {
         <div>
           <p className="text-xl font-bold leading-tight text-stone-950">みんなできれい</p>
           <p className="text-base text-stone-700">
-            {currentUser.systemAdmin
-              ? "システム管理者として見ています"
-              : currentUser.role === "admin"
-                ? "管理者として見ています"
-                : "住人として見ています"}
+            {currentUser.office
+              ? "管理会社として見ています"
+              : currentUser.systemAdmin
+                ? "システム管理者として見ています"
+                : currentUser.role === "admin"
+                  ? "管理者として見ています"
+                  : "住人として見ています"}
           </p>
         </div>
       </div>
@@ -40,18 +42,20 @@ export function Header() {
           ))}
         </select>
       </label>
-      <button
-        type="button"
-        className="mt-2 text-base font-bold text-[#4a6890] underline decoration-2 underline-offset-4"
-        onClick={() => {
-          const agreed = window.confirm(
-            "サンプルのシフトに戻します。担当やメモの変更は消えます。",
-          );
-          if (agreed) resetDemo();
-        }}
-      >
-        サンプルのシフトに戻す
-      </button>
+      {currentUser.office ? null : (
+        <button
+          type="button"
+          className="mt-2 text-base font-bold text-[#4a6890] underline decoration-2 underline-offset-4"
+          onClick={() => {
+            const agreed = window.confirm(
+              "サンプルのシフトに戻します。担当やメモの変更は消えます。",
+            );
+            if (agreed) resetDemo();
+          }}
+        >
+          サンプルのシフトに戻す
+        </button>
+      )}
     </header>
   );
 }

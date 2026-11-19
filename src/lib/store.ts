@@ -1,3 +1,4 @@
+import { normalizeConfirmedMonths } from "@/lib/confirmed";
 import {
   DEFAULT_ROLES,
   DEFAULT_ROSTER,
@@ -49,6 +50,7 @@ const SERVER_SNAPSHOT: StoredState = {
   roster: DEFAULT_ROSTER,
   roles: DEFAULT_ROLES,
   allowanceSchedule: normalizeAllowanceSchedule(undefined, DEFAULT_ROLES),
+  confirmedMonths: [],
   shifts: {},
 };
 
@@ -64,11 +66,18 @@ function normalizeMap(shifts: Record<string, ShiftRecord>): Record<string, Shift
 }
 
 function ensure(): StoredState {
-  if (memory?.roster && memory.allowanceSchedule) return memory;
+  if (
+    memory?.roster &&
+    memory.allowanceSchedule &&
+    Array.isArray(memory.confirmedMonths)
+  ) {
+    return memory;
+  }
   if (memory?.roster) {
     memory = {
       ...memory,
       allowanceSchedule: normalizeAllowanceSchedule(memory.allowanceSchedule, memory.roles),
+      confirmedMonths: normalizeConfirmedMonths(memory.confirmedMonths),
     };
     return memory;
   }
@@ -82,6 +91,7 @@ function ensure(): StoredState {
       roster,
       roles,
       allowanceSchedule: normalizeAllowanceSchedule(saved.allowanceSchedule, roles),
+      confirmedMonths: normalizeConfirmedMonths(saved.confirmedMonths),
       shifts: normalizeMap(saved.shifts),
     };
   } else {
@@ -93,6 +103,7 @@ function ensure(): StoredState {
       roster,
       roles,
       allowanceSchedule: normalizeAllowanceSchedule(undefined, roles),
+      confirmedMonths: [],
       shifts: seedShifts(),
     };
   }

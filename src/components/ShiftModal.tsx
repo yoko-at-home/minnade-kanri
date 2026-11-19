@@ -25,6 +25,7 @@ export function ShiftModal({
   const handover = app.previousHandover(dateKey);
   const isAdmin = app.currentUser?.role === "admin";
   const mine = day.slots.some((slot) => slot.assigneeId === app.currentUser?.id);
+  const locked = app.isMonthConfirmed(date.getFullYear(), date.getMonth());
 
   const [note, setNote] = useState(day.note);
   const [memo, setMemo] = useState(day.handover);
@@ -109,8 +110,13 @@ export function ShiftModal({
           <div className="mt-5 flex flex-col gap-5">
             <div className="flex flex-wrap items-center gap-2">
               <GarbageBadge type={day.garbageType} />
-              <p className="text-lg font-bold text-[#4a6890]">{rewardLabel(day.specialAllowance)}</p>
+              <p className="text-lg font-bold text-[#4a6890]">{rewardLabel()}</p>
             </div>
+            {locked ? (
+              <p className="rounded-2xl bg-[#f6e3a1] px-4 py-3 text-base leading-relaxed font-bold text-[#6a5214]">
+                この月の報酬は確定済みです。担当は変更できません。
+              </p>
+            ) : null}
 
             <section className="rounded-2xl bg-white p-4">
               <h3 className="text-base font-bold text-stone-700">備考・立ち会い</h3>
@@ -156,7 +162,7 @@ export function ShiftModal({
                         交代してください🙏
                       </p>
                     ) : null}
-                    {canClaim ? (
+                    {canClaim && !locked ? (
                       <button
                         type="button"
                         className="mt-3 h-14 w-full rounded-2xl bg-[#d7efe4] text-lg font-bold text-[#2a5646]"
@@ -170,7 +176,7 @@ export function ShiftModal({
                         {slot.seekingReplacement ? "交代で担当する" : "この日を担当する"}
                       </button>
                     ) : null}
-                    {isMine ? (
+                    {isMine && !locked ? (
                       <button
                         type="button"
                         className="mt-3 h-14 w-full rounded-2xl border-2 border-orange-700 bg-orange-50 text-lg font-bold text-orange-800"
@@ -193,7 +199,7 @@ export function ShiftModal({
               })}
             </section>
 
-            {mine ? (
+            {mine && !locked ? (
               <section className="rounded-2xl bg-white p-4">
                 <label className="text-base font-bold text-stone-900" htmlFor="handover">
                   申し送りメモを書く
@@ -218,7 +224,7 @@ export function ShiftModal({
               </section>
             ) : null}
 
-            {isAdmin ? (
+            {isAdmin && !locked ? (
               <section className="flex flex-col gap-3 rounded-2xl border-2 border-[#b7cbe4] bg-[#f3f7fc] p-4">
                 <h3 className="flex items-center gap-2 text-lg font-bold text-[#4a6890]">
                   <Shield aria-hidden size={22} />
@@ -257,16 +263,6 @@ export function ShiftModal({
                   備考を保存
                 </button>
                 <SwitchRow
-                  label="特別手当（+1,000円）を付与"
-                  pressed={day.specialAllowance}
-                  onClick={() =>
-                    report(
-                      app.setSpecial(dateKey, !day.specialAllowance),
-                      day.specialAllowance ? "特別手当を外しました" : "特別手当を付けました",
-                    )
-                  }
-                />
-                <SwitchRow
                   label="募集人数を2名にする（台風翌日など）"
                   pressed={day.capacity === 2}
                   onClick={() =>
@@ -294,7 +290,7 @@ export function ShiftModal({
                       }}
                     >
                       <option value="">空き枠</option>
-                      {app.members.map((member) => (
+                      {app.members.filter((member) => !member.office).map((member) => (
                         <option key={member.id} value={member.id}>
                           {memberLabel(member)}
                         </option>

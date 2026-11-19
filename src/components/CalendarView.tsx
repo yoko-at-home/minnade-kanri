@@ -1,47 +1,24 @@
 "use client";
 
-import { JapaneseYen, NotebookPen } from "lucide-react";
+import { NotebookPen } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GarbageBadge } from "@/components/GarbageBadge";
+import { MonthGrid } from "@/components/MonthGrid";
 import { MonthSwitcher } from "@/components/MonthSwitcher";
 import { ShiftModal } from "@/components/ShiftModal";
 import { useApp } from "@/context/AppContext";
 import { displayName } from "@/lib/members";
-import {
-  formatMonthDay,
-  formatYen,
-  GARBAGE_META,
-  parseDateKey,
-  rewardOf,
-} from "@/lib/schedule";
+import { formatMonthDay, formatYen, parseDateKey, rewardOf } from "@/lib/schedule";
 import type { Member, ShiftDay } from "@/lib/types";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
-
-const garbageDot: Record<ShiftDay["garbageType"], string> = {
-  burnable: "bg-red-500",
-  plastic: "bg-emerald-500",
-  pet: "bg-sky-500",
-  recycle: "bg-amber-500",
-  nonburnable: "bg-violet-500",
-  off: "bg-stone-300",
-};
-
-const dotLegend = [
-  { type: "recycle", label: "リサイクル" },
-  { type: "burnable", label: "燃えるごみ" },
-  { type: "plastic", label: "プラごみ" },
-  { type: "pet", label: "ペットボトル" },
-  { type: "nonburnable", label: "不燃ごみ" },
-] as const;
 
 function slotIsOpen(day: ShiftDay): boolean {
   return day.slots.some((slot) => !slot.assigneeId || slot.seekingReplacement);
 }
 
 function cardClass(day: ShiftDay, todayKey: string): string {
-  const base =
-    "flex w-full flex-col gap-2 rounded-2xl border px-4 py-3 text-left active:scale-[0.99]";
+  const base = "flex w-full flex-col gap-2 rounded-2xl border px-4 py-3 text-left";
   const today = day.date === todayKey;
   if (day.garbageType === "off") return `${base} border-stone-200 bg-stone-100`;
   if (slotIsOpen(day)) {
@@ -139,7 +116,7 @@ export function CalendarView() {
       <p className="text-base leading-relaxed text-stone-700">
         {monthView
           ? "ピンクの日は空き枠です。名前は、担当が決まっている人です。「2人」は2人とも空き、「あと1人」はもう1人募集している日です。"
-          : "日付を押すと担当や報酬を確認できます。下へスクロールすると月末まで見られ、週を押すとその位置まで移動します。"}
+          : "日付を押すと担当や報酬を確認できます。申し送りがある日は、その文が下に出ます。長い文は…を押すと全文が出ます。下へスクロールすると月末まで見られ、週を押すとその位置まで移動します。"}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <FilterButton pressed={monthView} onClick={() => setMonthView(true)}>
@@ -150,7 +127,7 @@ export function CalendarView() {
         </FilterButton>
       </div>
       {monthView ? (
-        <MonthHighlight
+        <MonthGrid
           days={monthDays}
           todayKey={todayKey}
           members={members}
@@ -237,116 +214,6 @@ export function CalendarView() {
   );
 }
 
-function MonthHighlight({
-  days,
-  todayKey,
-  members,
-  onSelect,
-}: {
-  days: ShiftDay[];
-  todayKey: string;
-  members: Member[];
-  onSelect: (dateKey: string) => void;
-}) {
-  const lead = days.length === 0 ? 0 : parseDateKey(days[0].date).getDay();
-
-  return (
-    <section className="flex flex-col gap-2" aria-label="ひと月のカレンダー">
-      <div className="grid grid-cols-7 gap-1">
-        {WEEKDAYS.map((label, index) => (
-          <div
-            key={label}
-            className={`py-1 text-center text-sm font-bold ${
-              index === 0 || index === 1 ? "text-stone-400" : "text-stone-700"
-            }`}
-          >
-            {label}
-          </div>
-        ))}
-        {WEEKDAYS.slice(0, lead).map((label) => (
-          <div key={`pad-${label}`} aria-hidden />
-        ))}
-        {days.map((day) => {
-          const date = parseDateKey(day.date);
-          const off = day.garbageType === "off";
-          const today = day.date === todayKey;
-          const garbage = off ? "お休み" : GARBAGE_META[day.garbageType].short;
-          const names = day.slots.flatMap((slot) => {
-            const member = members.find((item) => item.id === slot.assigneeId);
-            return member ? [member.name] : [];
-          });
-          const vacancy = !off && day.slots.some((slot) => !slot.assigneeId);
-          const open = vacancy && names.length === 0;
-          const recruitingTwo = vacancy && day.capacity === 2;
-          const oneLeft = recruitingTwo && names.length > 0;
-          const pink = open || oneLeft;
-          return (
-            <button
-              key={day.date}
-              type="button"
-              onClick={() => onSelect(day.date)}
-              aria-current={today ? "date" : undefined}
-              aria-label={`${date.getMonth() + 1}月${date.getDate()}日 ${garbage}${
-                names.length > 0 ? ` ${names.join("、")}` : ""
-              }${oneLeft ? " あと1人" : recruitingTwo ? " 2人募集" : vacancy ? " 空き枠" : ""}`}
-              className={`flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 ${
-                off
-                  ? "bg-stone-100 text-stone-400"
-                  : pink
-                    ? `bg-[#f8d5e2] font-bold text-[#7a3d55] ${
-                        today ? "ring-2 ring-[#c48aa0]" : ""
-                      }`
-                    : `border border-[#efe3d4] bg-white text-stone-800 ${
-                        today ? "ring-2 ring-[#8fbfa8]" : ""
-                      }`
-              }`}
-            >
-              <span className="flex items-center gap-0.5">
-                <span className="text-lg leading-none">{date.getDate()}</span>
-                {off ? null : (
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${garbageDot[day.garbageType]}`}
-                  />
-                )}
-                {recruitingTwo && !oneLeft ? (
-                  <span className="text-[11px] leading-none font-bold text-[#c45b7a]">
-                    2人
-                  </span>
-                ) : null}
-              </span>
-              {names.map((name) => (
-                <span
-                  key={name}
-                  className="max-w-full truncate text-xs leading-tight font-bold"
-                >
-                  {name}
-                </span>
-              ))}
-              {oneLeft ? (
-                <span className="text-[11px] leading-tight font-bold">あと1人</span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-      <ul className="flex flex-wrap gap-x-3 gap-y-1 px-1" aria-label="ゴミの色">
-        {dotLegend.map((item) => (
-          <li
-            key={item.type}
-            className="flex items-center gap-1.5 text-base text-stone-800"
-          >
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${garbageDot[item.type]}`}
-              aria-hidden
-            />
-            {item.label}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 function FilterButton({
   pressed,
   onClick,
@@ -370,6 +237,61 @@ function FilterButton({
   );
 }
 
+function HandoverPreview({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const fullRef = useRef<HTMLParagraphElement>(null);
+  const lineRef = useRef<HTMLParagraphElement>(null);
+  const [truncated, setTruncated] = useState(false);
+
+  useEffect(() => {
+    const full = fullRef.current;
+    const line = lineRef.current;
+    if (!full || !line) return;
+    setTruncated(full.offsetHeight > line.offsetHeight + 1);
+  }, [text]);
+
+  const preview = (
+    <>
+      <span className="text-sm font-bold text-[#6a5214]">申し送り</span>
+      <span className="relative block">
+        <p
+          ref={fullRef}
+          aria-hidden
+          className="invisible absolute inset-x-0 top-0 break-words whitespace-pre-wrap text-base leading-relaxed"
+        >
+          {text}
+        </p>
+        <p
+          ref={lineRef}
+          className={`break-words text-base leading-relaxed text-stone-900 ${
+            open ? "whitespace-pre-wrap" : "line-clamp-1"
+          }`}
+        >
+          {text}
+        </p>
+      </span>
+      {!open && truncated ? (
+        <span className="block text-base leading-none font-bold text-stone-500">...</span>
+      ) : null}
+    </>
+  );
+
+  if (!truncated && !open) {
+    return <div className="flex flex-col gap-1 rounded-xl bg-[#fff8e4] px-3 py-2">{preview}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={() => setOpen((value) => !value)}
+      className="flex flex-col gap-1 rounded-xl bg-[#fff8e4] px-3 py-2 text-left"
+    >
+      {preview}
+    </button>
+  );
+}
+
 function DayCard({
   day,
   todayKey,
@@ -385,11 +307,12 @@ function DayCard({
   const off = day.garbageType === "off";
 
   return (
-    <button
-      type="button"
-      className={cardClass(day, todayKey)}
-      onClick={onSelect}
-    >
+    <div className={cardClass(day, todayKey)}>
+      <button
+        type="button"
+        className="flex w-full flex-col gap-2 text-left active:scale-[0.99]"
+        onClick={onSelect}
+      >
       <span className="flex items-start justify-between gap-3">
         <span className="flex items-baseline gap-2">
           <span
@@ -455,14 +378,8 @@ function DayCard({
           </span>
           <span className="flex flex-wrap items-center gap-2 text-base">
             <span className="font-bold text-[#4a6890]">
-              {formatYen(rewardOf(day.specialAllowance))}
+              {formatYen(rewardOf())}
             </span>
-            {day.specialAllowance ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 font-bold text-amber-950">
-                <JapaneseYen aria-hidden size={18} />
-                +1,000円
-              </span>
-            ) : null}
             {day.note ? (
               <span className="inline-flex items-center gap-1 font-medium text-stone-700">
                 <NotebookPen aria-hidden size={18} />
@@ -472,6 +389,8 @@ function DayCard({
           </span>
         </>
       )}
-    </button>
+      </button>
+      {!off && day.handover ? <HandoverPreview text={day.handover} /> : null}
+    </div>
   );
 }

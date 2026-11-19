@@ -1,9 +1,8 @@
 import type { GarbageType, ShiftRecord, ShiftSlot } from "@/lib/types";
 
 export const BASE_REWARD = 5000;
-export const SPECIAL_ALLOWANCE = 1000;
-/** 管理者の役割がある人へ、月ごとに上乗せする。 */
-export const ADMIN_ALLOWANCE = 10000;
+/** 管理者ひとりへ、月ごとに上乗せする。 */
+export const ADMIN_ALLOWANCE = 5000;
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
@@ -122,7 +121,6 @@ export function emptySlot(): ShiftSlot {
 export function defaultRecord(): ShiftRecord {
   return {
     capacity: 1,
-    specialAllowance: false,
     note: "",
     handover: "",
     slots: [emptySlot()],
@@ -143,24 +141,20 @@ export function normalizeRecord(record: ShiftRecord): ShiftRecord {
   }
   return {
     capacity,
-    specialAllowance: Boolean(record.specialAllowance),
     note: record.note?.trim() ?? "",
     handover: record.handover?.trim() ?? "",
     slots,
   };
 }
 
-export function rewardOf(specialAllowance: boolean): number {
-  return BASE_REWARD + (specialAllowance ? SPECIAL_ALLOWANCE : 0);
+export function rewardOf(): number {
+  return BASE_REWARD;
 }
 
 export function formatYen(amount: number): string {
   return `${amount.toLocaleString("ja-JP")}円`;
 }
 
-export function rewardLabel(specialAllowance: boolean): string {
-  if (specialAllowance) {
-    return `${formatYen(rewardOf(true))}（特別手当 +1,000円込）`;
-  }
+export function rewardLabel(): string {
   return formatYen(BASE_REWARD);
 }
